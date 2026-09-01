@@ -27,7 +27,7 @@ export function Settings() {
             type="text"
             spellCheck={false}
             autoComplete="off"
-            placeholder="https://xivdiff-proxy.example.workers.dev"
+            placeholder="https://fflogs-proxy.example.workers.dev"
             value={value}
             onChange={(event) => {
               setValue(event.target.value)

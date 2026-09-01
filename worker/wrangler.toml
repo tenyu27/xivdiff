@@ -1,6 +1,9 @@
 # Deployed into the `xivdiff` Cloudflare account, so the account subdomain
-# already carries the project name: https://proxy.xivdiff.workers.dev
-name = "proxy"
+# already carries the project name: https://fflogs-proxy.xivdiff.workers.dev
+#
+# Changing this does not rename the Worker — Cloudflare creates a new one, and
+# secrets do not follow. Re-run `wrangler secret put` and delete the old Worker.
+name = "fflogs-proxy"
 main = "src/index.ts"
 compatibility_date = "2025-09-01"
 

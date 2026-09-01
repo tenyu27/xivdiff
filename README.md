@@ -63,13 +63,25 @@ Register an API client at <https://www.fflogs.com/api/clients/> first.
 ```sh
 cd worker
 yarn install
-yarn deploy
-wrangler secret put FFLOGS_CLIENT_ID
-wrangler secret put FFLOGS_CLIENT_SECRET
+npx wrangler login
+yarn deploy                                  # prints the workers.dev URL
+npx wrangler secret put FFLOGS_CLIENT_ID
+npx wrangler secret put FFLOGS_CLIENT_SECRET
 ```
 
-Then set `ALLOWED_ORIGINS` in `worker/wrangler.toml` to your Pages origin so the
-proxy is not usable as an open relay, and redeploy.
+The deployed URL is `https://<name>.<account-subdomain>.workers.dev`, where
+`<name>` is the `name` field in `wrangler.toml` — currently `fflogs-proxy`.
+That URL is what `VITE_API_BASE` must point at.
+
+Then set `ALLOWED_ORIGINS` in `worker/wrangler.toml` to your Pages origin and
+redeploy. It is enforced by rejecting the request, not only through CORS
+headers: those are advisory and honoured by browsers alone, so a header-only
+allowlist would leave the proxy an open relay against your FFLogs quota.
+
+Changing `name` does not rename a Worker — Cloudflare creates a new one, the
+old one keeps running, and secrets do not follow. After a rename, re-run
+`wrangler secret put` for both credentials and delete the old Worker with
+`wrangler delete --name <old-name>`.
 
 The worker caches on the exact query and variables for an hour. FFLogs reports
 are immutable once uploaded, so two people comparing the same log cost FFLogs a
