@@ -27,12 +27,99 @@
   border-left-color: var(--hairline-strong);
 }
 
+/* Chosen. A left edge alone is a mark you have to already be looking at the
+   row to see; the accent runs the whole way round and washes the card, so the
+   one row that has been picked is found by scanning rather than by reading. */
 .row-card-selected,
 .row-card-selected:hover {
-  border-left-color: var(--amber);
+  border-color: var(--amber);
+  background: var(--amber-wash);
 }
 
 /* --- pull rows -------------------------------------------------------- */
+
+.pull-region {
+  display: grid;
+  gap: 8px;
+}
+
+.pull-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* A filter is a persistent state, so it reads as a switch: the knob's position
+   says on or off without relying on colour alone. */
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.switch-track {
+  width: 26px;
+  height: 15px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--whisper);
+  display: flex;
+  transition: background 120ms ease;
+}
+
+.switch-knob {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--text-2);
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.switch[aria-checked='true'] .switch-track {
+  background: var(--amber);
+}
+
+.switch[aria-checked='true'] .switch-knob {
+  background: var(--on-amber);
+  transform: translateX(11px);
+}
+
+.switch-label {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.switch[aria-checked='true'] .switch-label {
+  color: var(--text);
+}
+
+.switch:disabled {
+  cursor: not-allowed;
+}
+
+.switch:disabled .switch-label {
+  color: var(--text-3);
+}
+
+.switch:disabled .switch-knob {
+  background: var(--text-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch-track,
+  .switch-knob {
+    transition: none;
+  }
+}
+
+.pull-filter-count {
+  font-size: 12px;
+  color: var(--text-3);
+}
 
 .row-list[aria-label='Pull'] .row-card {
   grid-template-columns: 42px minmax(0, 1fr) auto auto;
@@ -80,8 +167,25 @@
   gap: 14px;
 }
 
+/* Two abreast: a full party fits without a scroll container of its own. */
+.row-list-split {
+  grid-template-columns: 1fr 1fr;
+}
+
 .player-groups .row-card {
   grid-template-columns: 24px minmax(0, 1fr) auto;
+}
+
+/* A matching job is advice, not a state: it says the word and nothing more, so
+   that the accent belongs to selection alone. */
+.row-card-match:not(.row-card-selected) {
+  border-color: var(--hairline-strong);
+}
+
+.player-match {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--verdant);
 }
 
 .job-icon {

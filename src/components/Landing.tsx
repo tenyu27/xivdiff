@@ -75,6 +75,7 @@ export function Landing() {
         code: rightRef.code,
         fightId: rightRef.fightId ?? null,
       },
+      view: 'sequence',
     })
 
     navigate('/compare', search)
@@ -82,36 +83,17 @@ export function Landing() {
 
   return (
     <main className="landing">
-      <div className="landing-grid">
-        <section className="landing-copy">
-          <h1 className="landing-title">
-            Compare two FFXIV rotations, action by action.
-          </h1>
-          <p className="landing-lede">
-            Paste two FFLogs reports, pick a pull and a player on each side, and
-            xivdiff renders both rotations on one shared timeline — every GCD
-            and every weave, aligned by encounter time.
-          </p>
-
-          <dl className="landing-points">
-            <div>
-              <dt>Differences, not opinions</dt>
-              <dd>
-                Missing actions, extra actions, substitutions, and timing drift
-                past one second. No scoring, no recommendations.
-              </dd>
-            </div>
-            <div>
-              <dt>Jump between them</dt>
-              <dd>
-                Step through the meaningful differences with{' '}
-                <span className="kbd">J</span> and{' '}
-                <span className="kbd">K</span> instead of scrolling a few
-                hundred identical GCDs.
-              </dd>
-            </div>
-          </dl>
-        </section>
+      {/* One column: the statement, then the two things to fill in. Nothing
+          else — the tool explains itself the moment a log is pasted. */}
+      <div className="landing-column">
+        <h1 className="landing-title">
+          Compare two FFXIV rotations, action by action.
+        </h1>
+        <p className="landing-lede">
+          Paste two FFLogs reports, pick a pull and a player on each side, and
+          xivdiff renders both rotations on one shared timeline — every GCD and
+          every weave, realigned at each phase.
+        </p>
 
         <section className="landing-form">
           <div className="landing-inputs">
@@ -145,8 +127,8 @@ export function Landing() {
           </button>
 
           <p className="helper landing-note">
-            Public reports only. A pull URL selects that fight automatically;
-            a report URL asks which pull you meant.
+            Public reports only. A pull URL selects that fight automatically; a
+            report URL asks which pull you meant.
           </p>
         </section>
       </div>

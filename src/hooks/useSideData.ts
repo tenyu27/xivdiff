@@ -1,15 +1,41 @@
 import { useEffect, useState } from 'react'
 import { ApiError } from '../lib/api/client.ts'
 import { fetchCasts, fetchReport } from '../lib/api/fflogs.ts'
+import type { RawCastEvent } from '../lib/api/fflogs.ts'
 import { loadAbilities } from '../lib/api/xivapi.ts'
-import { jobFromName } from '../lib/jobs.ts'
+import { isPlayableJob, jobFromName } from '../lib/jobs.ts'
+import { phaseWindows, windowAt } from '../lib/phases.ts'
 import type {
+  AbilityMeta,
   Actor,
   Fight,
   ReportData,
   SideSelection,
   TimelineAction,
 } from '../lib/types.ts'
+
+/**
+ * Removes presses that no Action row stands behind.
+ *
+ * FFLogs emits synthetic ability ids the game has no action for (34603667 and
+ * friends). They are not buttons anyone pressed — they are FFLogs bookkeeping —
+ * and drawn on a timeline they become a nameless, iconless oGCD that pairs
+ * against a real press on the other side and reports a difference that did not
+ * happen.
+ *
+ * The exception is an XIVAPI outage, where *everything* is unresolved: a
+ * timeline of blank icons is poor, but it is honest, and better than claiming
+ * the pull contained no actions.
+ */
+function dropUnresolved(
+  actions: TimelineAction[],
+  abilities: Map<number, AbilityMeta>,
+): TimelineAction[] {
+  const resolved = actions.filter(
+    (action) => !abilities.get(action.abilityId)?.unresolved,
+  )
+  return resolved.length > 0 ? resolved : actions
+}
 
 export type SideStatus =
   | 'empty'
@@ -49,6 +75,33 @@ function loadReport(code: string): Promise<ReportData> {
   })
 
   reportCache.set(code, request)
+  return request
+}
+
+/**
+ * Cast events are immutable for a given report/fight/player, and the two sides
+ * routinely ask for the same one — the same player across two pulls, or
+ * literally the same pull while the other side is still being chosen. Caching
+ * the promise collapses those into a single FFLogs query, and also absorbs
+ * StrictMode's double effect invocation in development.
+ */
+const castCache = new Map<string, Promise<RawCastEvent[]>>()
+
+function loadCasts(
+  code: string,
+  fight: Fight,
+  actorId: number,
+): Promise<RawCastEvent[]> {
+  const key = `${code}:${fight.id}:${actorId}`
+  const cached = castCache.get(key)
+  if (cached) return cached
+
+  const request = fetchCasts(code, fight, actorId).catch((error: unknown) => {
+    castCache.delete(key)
+    throw error
+  })
+
+  castCache.set(key, request)
   return request
 }
 
@@ -106,10 +159,13 @@ export function useSideData(selection: SideSelection): SideData {
   const missingFight =
     report != null && selection.fightId != null && fight == null
 
+  // FFLogs lists the Limit Break pseudo-actor and untyped participants under
+  // `type: "Player"`. Neither has a rotation to compare, so neither is offered.
   const participants = fight
     ? fight.friendlyPlayers
         .map((id) => report?.actors.find((actor) => actor.id === id))
         .filter((actor): actor is Actor => actor != null)
+        .filter((actor) => isPlayableJob(actor.subType))
     : []
 
   const actor =
@@ -128,13 +184,14 @@ export function useSideData(selection: SideSelection): SideData {
     }
 
     let cancelled = false
-    const controller = new AbortController()
     setLoadingActions(true)
     setActionsError(null)
 
     void (async () => {
       try {
-        const casts = await fetchCasts(code, fight, actorId, controller.signal)
+        // Deliberately not abortable: the request is shared through the cache,
+        // so cancelling this consumer must not cancel it for the other side.
+        const casts = await loadCasts(code, fight, actorId)
         if (cancelled) return
 
         if (casts.length === 0) {
@@ -150,11 +207,16 @@ export function useSideData(selection: SideSelection): SideData {
           participants.find((entry) => entry.id === actorId)?.subType,
         )
 
+        const windows = phaseWindows(fight)
+
         const normalized: TimelineAction[] = casts.map((event) => {
           const meta = abilities.get(event.abilityGameID)
+          const window = windowAt(windows, event.timestamp)
           return {
             timestamp: event.timestamp,
             relativeTimestamp: (event.timestamp - fight.startTime) / 1000,
+            phase: window.phase,
+            phaseTime: (event.timestamp - window.startTime) / 1000,
             abilityId: event.abilityGameID,
             abilityName: meta?.name ?? `Action #${event.abilityGameID}`,
             abilityIcon: meta?.icon ?? '',
@@ -165,7 +227,7 @@ export function useSideData(selection: SideSelection): SideData {
         })
 
         normalized.sort((a, b) => a.timestamp - b.timestamp)
-        setActions(normalized)
+        setActions(dropUnresolved(normalized, abilities))
         setLoadingActions(false)
       } catch (error) {
         if (cancelled || (error as Error).name === 'AbortError') return
@@ -177,7 +239,6 @@ export function useSideData(selection: SideSelection): SideData {
 
     return () => {
       cancelled = true
-      controller.abort()
     }
     // `participants` is derived from these same inputs, so listing the ids is
     // both sufficient and stable.

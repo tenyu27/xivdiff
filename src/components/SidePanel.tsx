@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { parseFFLogsUrl } from '../lib/fflogsUrl.ts'
 import { jobFromName } from '../lib/jobs.ts'
-import { PullSelector } from './PullSelector.tsx'
+import { PullFacts, PullSelector } from './PullSelector.tsx'
 import { PlayerSelector } from './PlayerSelector.tsx'
 import type { SideData } from '../hooks/useSideData.ts'
 import type { SideId, SideSelection } from '../lib/types.ts'
@@ -30,6 +30,10 @@ export function SidePanel({
 }: Props) {
   const [draft, setDraft] = useState(selection.url)
   const [touched, setTouched] = useState(false)
+  // The pull list only earns its vertical space while there is a choice to
+  // make; once a pull is settled it collapses to the one line that matters.
+  const [browsingPulls, setBrowsingPulls] = useState(false)
+  const pullsOpen = browsingPulls || data.fight == null
 
   const parsed = parseFFLogsUrl(draft)
   const invalid = touched && draft.trim() !== '' && !parsed
@@ -94,22 +98,46 @@ export function SidePanel({
       {data.report && !data.error && (
         <>
           <div className="side-block">
-            <h3 className="section-label">
-              Pull — {data.report.title}
+            <h3 className="section-label side-block-head">
+              <span>Pull — {data.report.title}</span>
+              {data.fight && (
+                <button
+                  type="button"
+                  className="linkish"
+                  aria-expanded={pullsOpen}
+                  onClick={() => setBrowsingPulls((open) => !open)}
+                >
+                  {pullsOpen ? 'Done' : 'Change pull'}
+                </button>
+              )}
             </h3>
-            <div className="side-scroll">
-              <PullSelector
-                fights={data.report.fights}
-                selectedId={data.fight?.id ?? null}
-                onSelect={(fightId) => onChange({ fightId, actorId: null })}
-              />
-            </div>
+
+            {pullsOpen ? (
+              <div className="side-scroll">
+                <PullSelector
+                  fights={data.report.fights}
+                  selectedId={data.fight?.id ?? null}
+                  onSelect={(fightId) => {
+                    setBrowsingPulls(false)
+                    onChange({ fightId, actorId: null })
+                  }}
+                />
+              </div>
+            ) : (
+              data.fight && (
+                <div className="row-card row-card-selected pull-summary">
+                  <PullFacts fight={data.fight} />
+                </div>
+              )
+            )}
           </div>
 
           {data.fight && (
             <div className="side-block">
               <h3 className="section-label">Player</h3>
-              <div className="side-scroll">
+              {/* No inner scroll: a full party fits, and a second scroll
+                  container hid the last two roles behind a hidden overflow. */}
+              <div>
                 {data.participants.length > 0 ? (
                   <PlayerSelector
                     players={data.participants}

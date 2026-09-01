@@ -1,0 +1,10 @@
+/* Square, so it reads as an icon affordance rather than a truncated button. */
+.theme-toggle {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  justify-content: center;
+  flex: none;
+}
+
+/* Sizing and weight are shared by every button icon; see `.btn svg`. */

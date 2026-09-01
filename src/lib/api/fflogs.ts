@@ -1,5 +1,5 @@
 import { ApiError, graphql } from './client.ts'
-import type { Actor, Fight, ReportData } from '../types.ts'
+import type { Actor, Fight, PhaseTransition, ReportData } from '../types.ts'
 
 const REPORT_QUERY = `
 query Report($code: String!) {
@@ -15,6 +15,10 @@ query Report($code: String!) {
         endTime
         bossPercentage
         friendlyPlayers
+        phaseTransitions {
+          id
+          startTime
+        }
       }
       masterData(translate: true) {
         actors(type: "Player") {
@@ -59,8 +63,9 @@ interface ReportResponse {
     report: {
       code: string
       title: string
-      fights: (Omit<Fight, 'friendlyPlayers'> & {
+      fights: (Omit<Fight, 'friendlyPlayers' | 'phaseTransitions'> & {
         friendlyPlayers: number[] | null
+        phaseTransitions: PhaseTransition[] | null
       })[]
       masterData: { actors: Actor[] | null } | null
     } | null
@@ -102,6 +107,10 @@ export async function fetchReport(
   const fights = (report.fights ?? []).map((fight) => ({
     ...fight,
     friendlyPlayers: fight.friendlyPlayers ?? [],
+    // Sorted defensively: every downstream phase lookup assumes ascending.
+    phaseTransitions: [...(fight.phaseTransitions ?? [])].sort(
+      (a, b) => a.startTime - b.startTime,
+    ),
   }))
 
   if (fights.length === 0) {

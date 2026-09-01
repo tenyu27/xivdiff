@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { Compare } from './components/Compare.tsx'
 import { Landing } from './components/Landing.tsx'
+import { ThemeToggle } from './components/ThemeToggle.tsx'
 import { TooSmall } from './components/TooSmall.tsx'
 import { useRoute } from './hooks/useRoute.ts'
 import { useTheme } from './hooks/useTheme.ts'
@@ -40,14 +41,7 @@ export default function App() {
       <nav className="top-bar">
         <span className="wordmark">xivdiff</span>
         <span className="top-bar-actions">
-          <button
-            type="button"
-            className="btn btn-secondary top-bar-btn"
-            onClick={toggleTheme}
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-          >
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </span>
       </nav>
       <Landing />

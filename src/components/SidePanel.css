@@ -25,14 +25,39 @@
 
 .side-block {
   display: grid;
-  gap: 2px;
+  gap: 6px;
   min-width: 0;
+}
+
+.side-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+/* A disclosure, not an action — it carries no button weight. */
+.linkish {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--amber);
+  cursor: pointer;
 }
 
 .side-scroll {
   max-height: 280px;
   overflow-y: auto;
   padding-right: 4px;
+}
+
+/* The collapsed pull: identical row, minus the affordance to pick it again. */
+.pull-summary {
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
+  cursor: default;
 }
 
 .side-error {

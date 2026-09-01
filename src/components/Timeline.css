@@ -21,11 +21,6 @@
   position: relative;
 }
 
-/* Connectors deliberately overflow the gutter to meet the icons. */
-.gutter {
-  overflow: visible;
-}
-
 .spine {
   position: absolute;
   top: 0;
@@ -35,24 +30,100 @@
   background: var(--hairline-strong);
 }
 
+/* Time is read by tracing across, not by squinting at a number in the gutter.
+   Five-second ticks stay inside the gutter; every half minute rules the full
+   width so drift between the two tracks can be measured against it. */
 .tick {
   position: absolute;
   left: 0;
   right: 0;
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-3);
-  transform: translateY(-50%);
+  height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tick-line {
+  position: absolute;
+  left: 50%;
+  width: 120px;
+  transform: translateX(-50%);
+  border-top: 1px solid var(--hairline);
+}
+
+.tick-major .tick-line {
+  left: 0;
+  right: 0;
+  width: auto;
+  transform: none;
+  border-top-color: var(--hairline-strong);
+}
+
+.tick-label {
+  position: relative;
+  padding: 0 8px;
   background: var(--sunken);
-  padding: 2px 0;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.tick-major .tick-label {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* --- phase dividers --------------------------------------------------- */
+
+/* A phase boundary is a hard resynchronisation point, so it reads as a rule
+   across the full width rather than as another gutter annotation. */
+.phase-divider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px solid var(--hairline-strong);
+  display: flex;
+  justify-content: center;
+}
+
+.phase-label {
+  transform: translateY(-50%);
+  padding: 0 12px;
+  background: var(--sunken);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+}
+
+/* --- connectors ------------------------------------------------------- */
+
+/* One hairline per row, joining the pair across the gutter and taking the row's
+   verdict. Agreement stays at hairline weight so a screenful of matches reads
+   as quiet ruling rather than as a ladder. */
+.connector {
+  position: absolute;
+  height: 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.connector-timing-difference,
+.connector-mismatch {
+  border-top-color: var(--edge-diff);
+}
+
+.connector-left-only,
+.connector-right-only {
+  border-top-color: var(--edge-absent);
 }
 
 /* --- ability icons ---------------------------------------------------- */
 
+/* 2px, not a hairline: the border is the only carrier of the verdict now that
+   the connectors are gone, and at 1px against the icon art it vanished. */
 .action {
   position: absolute;
   margin: 0;
-  border: 1px solid var(--hairline);
+  border: 2px solid var(--hairline);
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--surface);
@@ -76,96 +147,52 @@
 
 .action-ogcd {
   border-radius: 4px;
-  opacity: 0.9;
 }
 
 .action:hover {
-  border-color: var(--hairline-strong);
-  opacity: 1;
+  opacity: 0.85;
 }
 
-.action-active {
-  outline: 2px solid var(--amber);
-  outline-offset: 1px;
+/* The outline is the entire verdict on a row. Agreement is the common case, so
+   its green is the quietest of the three and the eye slides over it. */
+.action-match {
+  border-color: var(--edge-match);
+}
+
+.action-timing-difference,
+.action-mismatch {
+  border-color: var(--edge-diff);
 }
 
 .action-left-only,
 .action-right-only {
-  border-color: var(--rose);
+  border-color: var(--edge-absent);
 }
 
-.action-mismatch {
-  border-color: var(--ochre);
-}
+/* --- outboard notes --------------------------------------------------- */
 
-/* --- connectors ------------------------------------------------------- */
-
-.connector {
+/* Beside the icon they describe, on the outer side of the track, in the space
+   that used to be empty. Nothing is written in the centre column. */
+.note {
   position: absolute;
-  height: 0;
-  display: flex;
-  align-items: center;
-}
-
-.connector-line {
-  flex: 1;
-  height: 1px;
-  background: var(--whisper);
-}
-
-.connector-timing-difference .connector-line {
-  background: var(--teal);
-}
-
-.connector-mismatch .connector-line {
-  background: var(--ochre);
-}
-
-.connector-stub .connector-line {
-  background: var(--rose);
-}
-
-.connector-delta {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  transform: translateY(-50%);
   font-size: 11px;
-  color: var(--teal);
-  background: var(--sunken);
-  padding: 0 5px;
-}
-
-.stub-caret {
-  width: 0;
-  height: 0;
-  border-top: 3px solid transparent;
-  border-bottom: 3px solid transparent;
-}
-
-.stub-left .stub-caret {
-  border-left: 4px solid var(--rose);
-}
-
-.stub-right .stub-caret {
-  border-right: 4px solid var(--rose);
-  order: -1;
-}
-
-.stub-label {
-  font-size: 11px;
-  color: var(--text-2);
-  padding: 0 6px;
-  background: var(--sunken);
   white-space: nowrap;
+  letter-spacing: 0.04em;
 }
 
-.stub-right .stub-label {
-  order: -2;
+.track-left .note {
+  text-align: right;
+}
+
+.note-absence {
+  color: var(--rose);
 }
 
 /* --- initial cascade -------------------------------------------------- */
 
 .staggering .action,
+.staggering .note,
 .staggering .connector {
   opacity: 0;
   animation: rise 200ms ease-out forwards;
@@ -184,6 +211,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .staggering .action,
+  .staggering .note,
   .staggering .connector {
     opacity: 1;
     animation: none;

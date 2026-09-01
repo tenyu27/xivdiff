@@ -15,8 +15,8 @@ interface ActionRow {
   fields: {
     Name: string
     Icon: { path: string } | null
-    ActionCategory: { fields: { Name: string } } | null
-    ClassJob: { fields: { Abbreviation: string } } | null
+    ActionCategory: { fields?: { Name: string } } | null
+    ClassJob: { fields?: { Abbreviation: string } } | null
   }
 }
 
@@ -41,7 +41,14 @@ export function jobIconUrl(classJobId: number): string | null {
 }
 
 function placeholder(id: number): AbilityMeta {
-  return { id, name: `Action #${id}`, icon: '', type: 'ogcd', job: null }
+  return {
+    id,
+    name: `Action #${id}`,
+    icon: '',
+    type: 'ogcd',
+    job: null,
+    unresolved: true,
+  }
 }
 
 /**
@@ -80,9 +87,37 @@ export async function loadAbilities(
 
 async function fetchChunk(ids: number[]): Promise<void> {
   try {
+    await fetchRows(ids)
+  } finally {
+    for (const id of ids) inFlight.delete(id)
+  }
+}
+
+function placeholderAll(ids: number[]): void {
+  for (const id of ids) {
+    if (!cache.has(id)) cache.set(id, placeholder(id))
+  }
+}
+
+/**
+ * XIVAPI answers 404 for the *entire* batch when any single requested row does
+ * not exist, and FFLogs emits synthetic ability ids with no Action row behind
+ * them (34603667 and friends). One of those in a batch of a hundred would blank
+ * every icon on the timeline, so a 404 is bisected until the offending ids are
+ * isolated: only they end up as placeholders, and every real action keeps its
+ * icon. Every other failure degrades the whole batch as before, rather than
+ * turning an outage into a storm of retries.
+ */
+async function fetchRows(ids: number[]): Promise<void> {
+  if (ids.length === 0) return
+
+  let status = 0
+
+  try {
     const url = `${BASE}/sheet/Action?rows=${ids.join(',')}&fields=${FIELDS}`
     const response = await fetch(url)
-    if (!response.ok) throw new Error(String(response.status))
+    status = response.status
+    if (!response.ok) throw new Error(String(status))
 
     const payload = (await response.json()) as { rows?: ActionRow[] }
 
@@ -93,21 +128,27 @@ async function fetchChunk(ids: number[]): Promise<void> {
         id: row.row_id,
         name: fields.Name || `Action #${row.row_id}`,
         icon: iconPath ? assetUrl(iconPath) : '',
-        type: classify(fields.ActionCategory?.fields.Name),
-        job: fields.ClassJob?.fields.Abbreviation || null,
+        // Rows can carry an unresolved link (`{ value: -1 }`) with no `fields`
+        // at all — one such row must not abort the whole chunk.
+        type: classify(fields.ActionCategory?.fields?.Name),
+        job: fields.ClassJob?.fields?.Abbreviation || null,
       })
     }
 
-    // Ids XIVAPI did not return (removed or synthetic) get a stable placeholder
-    // so they are never re-requested.
-    for (const id of ids) {
-      if (!cache.has(id)) cache.set(id, placeholder(id))
-    }
+    // Ids XIVAPI omitted from a successful response get a stable placeholder so
+    // they are never re-requested.
+    placeholderAll(ids)
+    return
   } catch {
-    for (const id of ids) {
-      if (!cache.has(id)) cache.set(id, placeholder(id))
+    if (status !== 404 || ids.length === 1) {
+      placeholderAll(ids)
+      return
     }
-  } finally {
-    for (const id of ids) inFlight.delete(id)
   }
+
+  const middle = ids.length >> 1
+  await Promise.all([
+    fetchRows(ids.slice(0, middle)),
+    fetchRows(ids.slice(middle)),
+  ])
 }

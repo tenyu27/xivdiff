@@ -3,9 +3,9 @@
 Visually diff two FFXIV rotations from FFLogs.
 
 Paste two FFLogs reports, pick a pull and a player on each side, and both
-rotations render on one shared timeline — every GCD and every weave, aligned by
-encounter time, with missing actions, extra actions, substitutions and timing
-drift called out so you can step between them.
+rotations render on one shared timeline — every GCD and every weave, realigned
+at each phase boundary, with missing actions, extra actions, substitutions and
+timing drift called out so you can step between them.
 
 It is not a rotation analyser. It answers one question: *what exactly did I do
 differently from this other pull?*

@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react'
 import {
   GCD_SIZE,
   OGCD_INSET,
   OGCD_SIZE,
-  formatDelta,
   formatTime,
   layoutTimeline,
 } from '../lib/layout.ts'
@@ -16,30 +15,56 @@ import './Timeline.css'
 
 /** Distance from a track column's inner edge to the GCD axis. */
 const AXIS = 120
+/** Half the centre gutter, which `grid-template-columns` fixes at 120px. */
+const HALF_GUTTER = 60
 const TOOLTIP_DELAY = 120
+/** Gap between an icon's outer edge and the note that annotates it. */
+const NOTE_GAP = 10
 
-/** Horizontal gap between an icon's inner edge and the gutter. */
-function reach(action: TimelineAction): number {
+function sizeOf(action: TimelineAction): number {
+  return action.actionType === 'gcd' ? GCD_SIZE : OGCD_SIZE
+}
+
+/** Distance from the track's inner edge to the icon's own inner edge. */
+function inset(action: TimelineAction): number {
   return action.actionType === 'gcd'
     ? AXIS - GCD_SIZE / 2
     : AXIS - OGCD_INSET - OGCD_SIZE / 2
 }
 
-/** Distance from the track's inner edge to the icon's own inner edge. */
-function inset(action: TimelineAction): number {
-  return reach(action)
+interface Note {
+  text: string
+  tone: 'absence'
+}
+
+/**
+ * What to write beside an icon, on that icon's own outer side.
+ *
+ * Everything used to be stated in the centre: a rule crossing both tracks and a
+ * label parked on the spine. At a few hundred rows that produced a thicket of
+ * lines converging on the middle, which buried the one thing the centre is for
+ * — the time axis. The state now lives on the icon's outline, the words live
+ * outboard in space that was empty, and the middle carries time alone.
+ */
+function noteFor(entry: LaidOutRow, side: SideId): Note | null {
+  const { row } = entry
+
+  if (row.type === 'left-only') {
+    return side === 'left' ? { text: 'extra', tone: 'absence' } : null
+  }
+  if (row.type === 'right-only') {
+    return side === 'right' ? { text: 'missing', tone: 'absence' } : null
+  }
+  // A pair of different abilities at the same beat carries no note: both icons
+  // are on screen and the ochre border already states the disagreement.
+  return null
 }
 
 interface Props {
   rows: MatchedAction[]
-  /** Row index the difference navigation is currently parked on. */
-  activeIndex: number | null
-  /** Incremented by the header to request a scroll to `activeIndex`. */
-  scrollNonce: number
 }
 
-export function Timeline({ rows, activeIndex, scrollNonce }: Props) {
-  const scrollRef = useRef<HTMLDivElement>(null)
+export function Timeline({ rows }: Props) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
   const [staggering, setStaggering] = useState(true)
 
@@ -53,71 +78,95 @@ export function Timeline({ rows, activeIndex, scrollNonce }: Props) {
     return () => window.clearTimeout(timer)
   }, [])
 
-  useEffect(() => {
-    const container = scrollRef.current
-    if (!container || activeIndex == null) return
-
-    const target = layout.rows[activeIndex]
-    if (!target) return
-
-    smoothScrollTo(container, target.y - container.clientHeight / 2)
-    // Driven by the nonce so that re-selecting the same row still scrolls.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollNonce, activeIndex])
-
   return (
-    <div className="timeline" ref={scrollRef}>
+    <div className="timeline">
       <div
         className={staggering ? 'timeline-inner staggering' : 'timeline-inner'}
         style={{ height: layout.height }}
       >
-        <div className="track track-left">
-          {layout.rows.map((entry) =>
-            entry.row.left ? (
-              <Icon
-                key={entry.index}
-                entry={entry}
-                total={total}
-                action={entry.row.left}
-                side="left"
-                active={entry.index === activeIndex}
-                onHover={setTooltip}
-              />
-            ) : null,
-          )}
-        </div>
+        {/* Time rules and phase dividers are painted before the tracks, so no
+            icon is ever obscured by them. */}
+        {layout.ticks.map((tick) => (
+          <div
+            className={tick.major ? 'tick tick-major' : 'tick'}
+            key={tick.key}
+            style={{ top: tick.y }}
+          >
+            <span className="tick-line" />
+            <span className="mono tick-label">
+              {formatTime(tick.time).slice(0, -4)}
+            </span>
+          </div>
+        ))}
 
+        {layout.phases.map((marker) => (
+          <div
+            className="phase-divider"
+            key={marker.phase}
+            style={{ top: marker.y }}
+          >
+            <span className="phase-label">Phase {marker.phase}</span>
+          </div>
+        ))}
+
+        {/* Painted under the icons, over the rules: a row's two halves belong
+            to each other, and the eye should not have to hold a y-position
+            across two hundred pixels of empty gutter to believe it. */}
+        {layout.rows.map((entry) => (
+          <Connector key={entry.index} entry={entry} total={total} />
+        ))}
+
+        <Track
+          side="left"
+          rows={layout.rows}
+          total={total}
+          onHover={setTooltip}
+        />
+
+        {/* Time and nothing else. */}
         <div className="gutter">
           <div className="spine" />
-          {layout.ticks.map((tick) => (
-            <div className="mono tick" key={tick.time} style={{ top: tick.y }}>
-              {formatTime(tick.time).slice(0, -4)}
-            </div>
-          ))}
-          {layout.rows.map((entry) => (
-            <Connector key={entry.index} entry={entry} total={total} />
-          ))}
         </div>
 
-        <div className="track track-right">
-          {layout.rows.map((entry) =>
-            entry.row.right ? (
-              <Icon
-                key={entry.index}
-                entry={entry}
-                total={total}
-                action={entry.row.right}
-                side="right"
-                active={entry.index === activeIndex}
-                onHover={setTooltip}
-              />
-            ) : null,
-          )}
-        </div>
+        <Track
+          side="right"
+          rows={layout.rows}
+          total={total}
+          onHover={setTooltip}
+        />
       </div>
 
       {tooltip && <Tooltip state={tooltip} />}
     </div>
+  )
+}
+
+/**
+ * The hairline joining a row's two icons across the gutter.
+ *
+ * Offsets are measured from the centre because the track columns are fluid and
+ * the gutter is not: an icon's inner edge sits `HALF_GUTTER + inset` from the
+ * middle whatever the window is doing. A one-sided press runs its line only as
+ * far as the spine, so the eye sees exactly where the other pull has nothing.
+ */
+function Connector({ entry, total }: { entry: LaidOutRow; total: number }) {
+  const { left, right } = entry.row
+  if (!left && !right) return null
+
+  const edge = (action: TimelineAction): string =>
+    `calc(50% - ${HALF_GUTTER + inset(action)}px)`
+
+  return (
+    <span
+      className={`connector connector-${entry.row.type}`}
+      style={{
+        top: entry.y,
+        left: left ? edge(left) : '50%',
+        right: right ? edge(right) : '50%',
+        ...staggerStyle(entry.index, total),
+      }}
+      aria-hidden
+    />
   )
 }
 
@@ -128,46 +177,48 @@ function staggerStyle(index: number, total: number): CSSProperties {
   }
 }
 
-function Connector({ entry, total }: { entry: LaidOutRow; total: number }) {
-  const { row, y, index } = entry
-  const style = { top: y, ...staggerStyle(index, total) }
+interface TrackProps {
+  side: SideId
+  rows: LaidOutRow[]
+  total: number
+  onHover: (state: TooltipState | null) => void
+}
 
-  if (row.left && row.right) {
-    return (
-      <div
-        className={`connector connector-${row.type}`}
-        style={{ ...style, left: -reach(row.left), right: -reach(row.right) }}
-      >
-        <span className="connector-line" />
-        {row.type === 'timing-difference' && row.deltaMs != null && (
-          <span className="mono connector-delta">
-            {formatDelta(row.deltaMs)}
-          </span>
-        )}
-      </div>
-    )
-  }
-
-  // A one-sided action draws a stub from the icon it has toward the gap, so the
-  // eye lands on the empty side without filling the row with colour.
-  const present: SideId = row.left ? 'left' : 'right'
-  const action = (row.left ?? row.right)!
-
+function Track({ side, rows, total, onHover }: TrackProps) {
   return (
-    <div
-      className={`connector connector-stub stub-${present}`}
-      style={{
-        ...style,
-        ...(present === 'left'
-          ? { left: -reach(action), right: 34 }
-          : { right: -reach(action), left: 34 }),
-      }}
-    >
-      <span className="connector-line" />
-      <span className="stub-caret" />
-      <span className="stub-label">
-        {present === 'left' ? 'extra' : 'missing'}
-      </span>
+    <div className={`track track-${side}`}>
+      {rows.map((entry) => {
+        const action = side === 'left' ? entry.row.left : entry.row.right
+        if (!action) return null
+
+        const note = noteFor(entry, side)
+
+        return (
+          <Fragment key={entry.index}>
+            <Icon
+              entry={entry}
+              total={total}
+              action={action}
+              side={side}
+              onHover={onHover}
+            />
+            {note && (
+              <span
+                className={`mono note note-${note.tone}`}
+                style={{
+                  top: entry.y,
+                  // Outboard of the icon: the side of the track that was empty.
+                  [side === 'left' ? 'right' : 'left']:
+                    inset(action) + sizeOf(action) + NOTE_GAP,
+                  ...staggerStyle(entry.index, total),
+                }}
+              >
+                {note.text}
+              </span>
+            )}
+          </Fragment>
+        )
+      })}
     </div>
   )
 }
@@ -177,24 +228,28 @@ interface IconProps {
   total: number
   action: TimelineAction
   side: SideId
-  active: boolean
   onHover: (state: TooltipState | null) => void
 }
 
-function Icon({ entry, total, action, side, active, onHover }: IconProps) {
+function Icon({ entry, total, action, side, onHover }: IconProps) {
   const timer = useRef<number | undefined>(undefined)
 
   const isGcd = action.actionType === 'gcd'
-  const size = isGcd ? GCD_SIZE : OGCD_SIZE
+  const size = sizeOf(action)
   const edge = side === 'left' ? 'right' : 'left'
 
-  const classes = ['action', isGcd ? 'action-gcd' : 'action-ogcd']
-  if (active) classes.push('action-active')
-  if (entry.row.type !== 'match') classes.push(`action-${entry.row.type}`)
+  // The outline is now the whole verdict — including agreement, which used to
+  // be stated by a connector. Green reads as "nothing to look at here", so the
+  // eye is free to stop only on the yellow and rose rows.
+  const classes = [
+    'action',
+    isGcd ? 'action-gcd' : 'action-ogcd',
+    `action-${entry.row.type}`,
+  ]
 
   const openTooltip = (element: HTMLElement) => {
     const rect = element.getBoundingClientRect()
-    onHover({ action, row: entry.row, side, anchor: rect })
+    onHover({ action, side, anchor: rect })
   }
 
   const onEnter = (event: ReactMouseEvent<HTMLElement>) => {
@@ -224,7 +279,7 @@ function Icon({ entry, total, action, side, active, onHover }: IconProps) {
       onFocus={(event) => openTooltip(event.currentTarget)}
       onBlur={onLeave}
       tabIndex={0}
-      aria-label={`${action.abilityName} at ${formatTime(action.relativeTimestamp)}`}
+      aria-label={`${action.abilityName} at ${formatTime(action.phaseTime)} in phase ${action.phase}`}
     >
       {action.abilityIcon ? (
         <img src={action.abilityIcon} alt="" loading="lazy" decoding="async" />
@@ -233,37 +288,4 @@ function Icon({ entry, total, action, side, active, onHover }: IconProps) {
       )}
     </figure>
   )
-}
-
-/**
- * A hand-rolled tween rather than `scroll-behavior: smooth`, because the design
- * calls for a specific 240ms ease and the native behaviour offers no duration
- * control.
- */
-function smoothScrollTo(container: HTMLElement, target: number): void {
-  const clamped = Math.max(
-    0,
-    Math.min(target, container.scrollHeight - container.clientHeight),
-  )
-
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const start = container.scrollTop
-  const distance = clamped - start
-
-  if (reduced || Math.abs(distance) < 2) {
-    container.scrollTop = clamped
-    return
-  }
-
-  const began = performance.now()
-  const DURATION = 240
-
-  const step = (now: number) => {
-    const progress = Math.min((now - began) / DURATION, 1)
-    // Ease-out cubic: quick departure, settled arrival.
-    container.scrollTop = start + distance * (1 - Math.pow(1 - progress, 3))
-    if (progress < 1) requestAnimationFrame(step)
-  }
-
-  requestAnimationFrame(step)
 }

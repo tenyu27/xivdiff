@@ -1,4 +1,4 @@
-import { rowTime } from './diff.ts'
+import { rowPhase, rowTime } from './diff.ts'
 import type { MatchedAction } from './types.ts'
 
 export const GCD_SIZE = 42
@@ -11,23 +11,34 @@ const PX_PER_SECOND = 26
 const ROW_PADDING = 6
 const TOP_PADDING = 28
 const BOTTOM_PADDING = 80
+/** Vertical break between phases, wide enough to read as a hard boundary. */
+const PHASE_GAP = 64
 
 export interface LaidOutRow {
   row: MatchedAction
   index: number
   /** Vertical centre of the row, in pixels from the top of the track. */
   y: number
+  /** Seconds since the start of this row's phase. */
   time: number
+  phase: number
   isGcd: boolean
   size: number
+}
+
+export interface PhaseMarker {
+  phase: number
+  /** Vertical centre of the divider rule. */
+  y: number
 }
 
 export interface TimelineLayout {
   rows: LaidOutRow[]
   height: number
-  /** Elapsed-time ticks for the centre gutter. */
-  ticks: { time: number; y: number }[]
-  timeToY: (time: number) => number
+  /** Phase-elapsed ticks. `major` lands on every half minute. */
+  ticks: { key: string; time: number; y: number; major: boolean }[]
+  /** Empty for an unphased encounter — one phase needs no divider. */
+  phases: PhaseMarker[]
 }
 
 function isGcdRow(row: MatchedAction): boolean {
@@ -42,38 +53,93 @@ function isGcdRow(row: MatchedAction): boolean {
  */
 export function layoutTimeline(rows: MatchedAction[]): TimelineLayout {
   const laidOut: LaidOutRow[] = []
+  const ticks: TimelineLayout['ticks'] = []
+  const phases: PhaseMarker[] = []
+
+  // Each phase is placed as its own segment starting from zero, which is what
+  // makes both sides re-level at every phase boundary.
+  const segments = splitByPhase(rows)
+  const phased = segments.length > 1
+
   let cursor = TOP_PADDING
 
-  for (let index = 0; index < rows.length; index++) {
-    const row = rows[index]
-    const isGcd = isGcdRow(row)
-    const size = isGcd ? GCD_SIZE : OGCD_SIZE
-    const time = rowTime(row)
+  for (const segment of segments) {
+    // The first phase opens the same way every later one does. Starting it flush
+    // at the top padding instead put its divider half a gap *above* the content
+    // — off the canvas — and left the opener crowded against the top edge, while
+    // phases two onward each got room to breathe.
+    const base =
+      laidOut.length === 0 && !phased ? TOP_PADDING : cursor + PHASE_GAP
+    if (phased) phases.push({ phase: segment.phase, y: base - PHASE_GAP / 2 })
 
-    const previous = laidOut[index - 1]
-    const minimum = previous
-      ? previous.y + (previous.size + size) / 2 + ROW_PADDING
-      : cursor + size / 2
+    const start = laidOut.length
 
-    const y = Math.max(minimum, TOP_PADDING + time * PX_PER_SECOND)
+    for (const row of segment.rows) {
+      const isGcd = isGcdRow(row)
+      const size = isGcd ? GCD_SIZE : OGCD_SIZE
+      const time = rowTime(row)
 
-    laidOut.push({ row, index, y, time, isGcd, size })
-    cursor = y
+      const previous = laidOut[laidOut.length - 1]
+      const minimum =
+        laidOut.length > start
+          ? previous.y + (previous.size + size) / 2 + ROW_PADDING
+          : base + size / 2
+
+      const y = Math.max(minimum, base + time * PX_PER_SECOND)
+
+      laidOut.push({
+        row,
+        index: laidOut.length,
+        y,
+        time,
+        phase: segment.phase,
+        isGcd,
+        size,
+      })
+    }
+
+    const placed = laidOut.slice(start)
+    cursor = placed.length ? placed[placed.length - 1].y : base
+
+    const timeToY = buildTimeMapping(placed, base)
+    const lastTime = placed.length ? placed[placed.length - 1].time : 0
+    // Ticks stop at the last row rather than extrapolating past it: an
+    // extrapolated tick lands inside the next phase's band and misdates it.
+    // With a phase divider present it already marks the zero, so the 0:00 tick
+    // would only double the same rule.
+    const firstTick = phased ? 5 : 0
+    for (let time = firstTick; time <= lastTime; time += 5) {
+      ticks.push({
+        key: `${segment.phase}-${time}`,
+        time,
+        y: timeToY(time),
+        major: time % 30 === 0,
+      })
+    }
   }
 
-  const height = laidOut.length
-    ? laidOut[laidOut.length - 1].y + BOTTOM_PADDING
-    : 240
+  const height = laidOut.length ? cursor + BOTTOM_PADDING : 240
 
-  const timeToY = buildTimeMapping(laidOut)
-  const lastTime = laidOut.length ? laidOut[laidOut.length - 1].time : 0
+  return { rows: laidOut, height, ticks, phases }
+}
 
-  const ticks: { time: number; y: number }[] = []
-  for (let time = 0; time <= lastTime + 5; time += 5) {
-    ticks.push({ time, y: timeToY(time) })
+interface PhaseSegment {
+  phase: number
+  rows: MatchedAction[]
+}
+
+/** Rows arrive in phase order, so a single pass is enough to cut them apart. */
+function splitByPhase(rows: MatchedAction[]): PhaseSegment[] {
+  const segments: PhaseSegment[] = []
+
+  for (const row of rows) {
+    const phase = rowPhase(row)
+    const current = segments[segments.length - 1]
+    if (current && current.phase === phase) current.rows.push(row)
+    else segments.push({ phase, rows: [row] })
   }
 
-  return { rows: laidOut, height, ticks, timeToY }
+  return segments
 }
 
 /**
@@ -81,9 +147,12 @@ export function layoutTimeline(rows: MatchedAction[]): TimelineLayout {
  * lands between the actions that actually happened at 0:45 — even in stretches
  * where collision avoidance pushed rows off the pure time scale.
  */
-function buildTimeMapping(rows: LaidOutRow[]): (time: number) => number {
+function buildTimeMapping(
+  rows: LaidOutRow[],
+  base: number,
+): (time: number) => number {
   if (rows.length === 0) {
-    return (time) => TOP_PADDING + time * PX_PER_SECOND
+    return (time) => base + time * PX_PER_SECOND
   }
 
   // The mapping must be monotonic to be interpolatable; rows are already in
@@ -141,7 +210,11 @@ export function formatDuration(seconds: number): string {
   return `${minutes}:${String(clamped % 60).padStart(2, '0')}`
 }
 
-/** Deltas always carry an explicit sign and three decimals. */
+/**
+ * Deltas always carry an explicit sign and three decimals. Currently unused —
+ * drift is signalled by the icon border alone, with no number rendered — kept
+ * because `deltaMs` is still computed and the format is settled.
+ */
 export function formatDelta(deltaMs: number): string {
   const sign = deltaMs >= 0 ? '+' : '−'
   return `${sign}${(Math.abs(deltaMs) / 1000).toFixed(3)}s`

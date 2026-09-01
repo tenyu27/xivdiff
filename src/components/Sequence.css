@@ -1,0 +1,254 @@
+/* The sequence body is the app's scroll container in this view. */
+.sequence {
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--sunken);
+  border-top: 1px solid var(--hairline);
+}
+
+.sequence-inner {
+  position: relative;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px 0 80px;
+}
+
+/* The middle is a separator and nothing else — no time, no labels. */
+.sequence-spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--hairline-strong);
+}
+
+/* --- rows -------------------------------------------------------------- */
+
+/* One press per row, every row the same weight. Order is the subject here, so
+   nothing is placed on a clock: identical rotations line up exactly however far
+   apart in real time they drifted. */
+.seq-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr;
+  align-items: center;
+}
+
+.seq-row-gcd {
+  height: 46px;
+}
+
+.seq-row-ogcd {
+  height: 32px;
+}
+
+.seq-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.seq-cell-left {
+  justify-content: flex-end;
+}
+
+.seq-cell-right {
+  justify-content: flex-start;
+}
+
+/* --- connector --------------------------------------------------------- */
+
+/* One hairline joining the pair straight across the separator. A one-sided
+   press runs its line only as far as the middle, so the eye can see exactly
+   where the other pull has nothing. */
+.seq-link {
+  position: relative;
+  height: 100%;
+}
+
+.seq-link-line {
+  position: absolute;
+  top: 50%;
+  height: 0;
+  border-top: 1px solid var(--hairline-strong);
+}
+
+.seq-link-both .seq-link-line {
+  left: 0;
+  right: 0;
+}
+
+.seq-link-left .seq-link-line {
+  left: 0;
+  right: 50%;
+}
+
+.seq-link-right .seq-link-line {
+  left: 50%;
+  right: 0;
+}
+
+/* --- icons ------------------------------------------------------------- */
+
+/* 2px, not a hairline: the border carries the entire verdict on the row, and
+   at 1px against the icon art it vanished. */
+.seq-icon {
+  margin: 0;
+  flex: none;
+  border: 2px solid var(--hairline);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  transition: opacity 120ms ease, border-color 120ms ease;
+  cursor: default;
+}
+
+.seq-icon-gcd {
+  width: 38px;
+  height: 38px;
+}
+
+.seq-icon-ogcd {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+}
+
+.seq-icon img,
+.seq-icon-blank {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.seq-icon-blank {
+  background: var(--whisper);
+}
+
+.seq-icon:hover {
+  opacity: 0.85;
+}
+
+/* Agreement is the common case, so its green is the quietest of the three and
+   the eye slides over it. */
+.seq-row-match .seq-icon {
+  border-color: var(--edge-match);
+}
+
+.seq-row-timing-difference .seq-icon,
+.seq-row-mismatch .seq-icon {
+  border-color: var(--edge-diff);
+}
+
+.seq-row-left-only .seq-icon,
+.seq-row-right-only .seq-icon {
+  border-color: var(--edge-absent);
+}
+
+/* The connector takes the row's verdict too, so a divergence reads across the
+   full width rather than only at its ends. */
+.seq-row-mismatch .seq-link-line,
+.seq-row-timing-difference .seq-link-line {
+  border-top-color: var(--edge-diff);
+}
+
+.seq-row-left-only .seq-link-line,
+.seq-row-right-only .seq-link-line {
+  border-top-color: var(--edge-absent);
+}
+
+/* --- outboard notes ---------------------------------------------------- */
+
+.seq-note {
+  font-size: 11px;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  /* Only absence is ever written here, so the note has one colour. */
+  color: var(--rose);
+}
+
+/* --- gaps and phases --------------------------------------------------- */
+
+/* Time only re-enters the view when one side genuinely stopped pressing
+   buttons; ordinary clipping and weaving open no hole. */
+.seq-gap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seq-gap::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px dashed var(--hairline);
+}
+
+.seq-gap-label {
+  position: relative;
+  padding: 0 8px;
+  background: var(--sunken);
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* A phase boundary is a hard resynchronisation point, so it rules the full
+   width. */
+.sequence-phase {
+  position: relative;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sequence-phase::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px solid var(--hairline-strong);
+}
+
+.sequence-phase-label {
+  position: relative;
+  padding: 0 12px;
+  background: var(--sunken);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+}
+
+/* --- initial cascade --------------------------------------------------- */
+
+.staggering .seq-row,
+.staggering .seq-gap {
+  opacity: 0;
+  animation: seq-rise 200ms ease-out forwards;
+}
+
+@keyframes seq-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staggering .seq-row,
+  .staggering .seq-gap {
+    opacity: 1;
+    animation: none;
+  }
+}

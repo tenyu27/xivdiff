@@ -57,6 +57,14 @@ export function jobFromName(name: string | null | undefined): JobInfo {
   return BY_NAME.get(normalizeKey(name)) ?? { ...UNKNOWN, name }
 }
 
+/**
+ * True only for a real combat job. FFLogs files the Limit Break pseudo-actor
+ * and untyped participants alongside players, and neither has a rotation.
+ */
+export function isPlayableJob(name: string | null | undefined): boolean {
+  return jobFromName(name).id > 0
+}
+
 export const ROLE_ORDER: RoleKey[] = [
   'tank',
   'healer',

@@ -18,10 +18,22 @@
 
   --amber: #d9a441;
   --on-amber: #131417;
+  /* The accent at wash strength, for the row that is actually chosen. */
+  --amber-wash: rgba(217, 164, 65, 0.12);
   --teal: #5e9c9b;
-  --rose: #b4736f;
-  --ochre: #a08a4e;
+  --verdant: #63ad58;
+  --rose: #cf6f69;
+  --ochre: #d8bb2e;
   --whisper: rgba(232, 233, 236, 0.14);
+
+  /* A verdict written on an icon's outline is read against the game's own art,
+     which is dark in either theme, and never against the page. That is a
+     different contrast problem from the same verdict written as a word, so the
+     outline colours are their own tokens: on dark they can coincide with the
+     text colours, on light they cannot. */
+  --edge-match: #63ad58;
+  --edge-diff: #d8bb2e;
+  --edge-absent: #cf6f69;
 
   --card-shadow: none;
 
@@ -49,10 +61,20 @@
 
   --amber: #b07c15;
   --on-amber: #ffffff;
+  --amber-wash: rgba(176, 124, 21, 0.1);
   --teal: #2f6d6c;
-  --rose: #9a4f4a;
-  --ochre: #7a6220;
+  --verdant: #3f8034;
+  --rose: #b03f3f;
+  --ochre: #96760a;
   --whisper: rgba(27, 29, 33, 0.14);
+
+  /* Darkened for legibility on paper, the three text colours collapse into one
+     muddy band once they are 2px of outline on dark icon art: a brown-green, a
+     brown-gold and a brown-red. The outlines therefore keep full chroma and
+     separate cleanly by hue instead — green, amber, crimson. */
+  --edge-match: #16a34a;
+  --edge-diff: #e59500;
+  --edge-absent: #dc2650;
 
   --card-shadow: 0 1px 2px rgba(27, 29, 33, 0.06);
 
@@ -129,6 +151,16 @@ button {
   transform: translateY(1px);
 }
 
+/* Every glyph in the product is Tabler, drawn at one size and one weight so a
+   row of buttons reads as one set rather than as icons from three places.
+   Tabler's own 2px is heavy once scaled down to sit beside 13px labels. */
+.btn svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  stroke-width: 1.75;
+}
+
 .btn-primary {
   background: var(--amber);
   color: var(--on-amber);
@@ -192,6 +224,30 @@ button {
   outline-offset: -1px;
 }
 
+/* Native select, restyled rather than rebuilt: a custom listbox would be a
+   popover, and popovers are the one overlay this product does not want. */
+.select {
+  height: 30px;
+  padding: 0 28px 0 10px;
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 15px) 13px, calc(100% - 10px) 13px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.select:hover {
+  border-color: var(--text-3);
+}
+
 .section-label {
   font-size: 11px;
   color: var(--text-2);
@@ -199,12 +255,6 @@ button {
   padding-bottom: 5px;
   border-bottom: 1px solid var(--hairline);
   margin-bottom: 6px;
-}
-
-.kbd {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-3);
 }
 
 /* Skeleton shimmer is the one permitted perpetual loop, and it stops the

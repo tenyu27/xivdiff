@@ -1,10 +1,9 @@
-import { formatDelta, formatTime } from '../lib/layout.ts'
-import type { MatchedAction, SideId, TimelineAction } from '../lib/types.ts'
+import { formatTime } from '../lib/layout.ts'
+import type { SideId, TimelineAction } from '../lib/types.ts'
 import './Tooltip.css'
 
 export interface TooltipState {
   action: TimelineAction
-  row: MatchedAction
   side: SideId
   /** Bounding rect of the anchoring icon, in viewport coordinates. */
   anchor: { top: number; left: number; right: number; bottom: number }
@@ -13,8 +12,13 @@ export interface TooltipState {
 const WIDTH = 240
 const MARGIN = 10
 
+/**
+ * What this action is and when it was cast — nothing more. The verdict on the
+ * row is already stated by the icon's border and its outboard note, so
+ * restating it here only made the same finding twice.
+ */
 export function Tooltip({ state }: { state: TooltipState }) {
-  const { action, row, side, anchor } = state
+  const { action, side, anchor } = state
 
   // Placed on the outer side of the track so it can never cover its own anchor.
   const left =
@@ -23,47 +27,24 @@ export function Tooltip({ state }: { state: TooltipState }) {
       : Math.min(window.innerWidth - WIDTH - MARGIN, anchor.right + MARGIN)
 
   const centred = (anchor.top + anchor.bottom) / 2
-  const top = Math.min(
-    Math.max(MARGIN, centred - 40),
-    window.innerHeight - 150,
-  )
-
-  const paired = row.left && row.right
+  const top = Math.min(Math.max(MARGIN, centred - 30), window.innerHeight - 80)
 
   return (
     <div className="tooltip" style={{ left, top, width: WIDTH }} role="tooltip">
       <p className="tooltip-name">{action.abilityName}</p>
+      {/* Times are phase-relative throughout, matching how the rows are both
+          aligned and placed; the phase tag says which clock is being read. */}
       <p className="mono tooltip-meta">
-        {formatTime(action.relativeTimestamp)}
+        <span>
+          {formatTime(action.phaseTime)}
+          {action.phase > 1 && (
+            <span className="tooltip-phase"> P{action.phase}</span>
+          )}
+        </span>
         <span className="tooltip-kind">
           {action.actionType === 'gcd' ? 'GCD' : 'oGCD'}
         </span>
       </p>
-
-      {paired && row.deltaMs != null && (
-        <div className="tooltip-compare">
-          <dl className="mono tooltip-grid">
-            <dt>Your timing</dt>
-            <dd>{formatTime(row.left!.relativeTimestamp)}</dd>
-            <dt>Reference timing</dt>
-            <dd>{formatTime(row.right!.relativeTimestamp)}</dd>
-          </dl>
-          <p className="mono tooltip-delta">{formatDelta(row.deltaMs)}</p>
-        </div>
-      )}
-
-      {row.type === 'left-only' && (
-        <p className="tooltip-note">Not present in the reference rotation.</p>
-      )}
-      {row.type === 'right-only' && (
-        <p className="tooltip-note">Not present in your rotation.</p>
-      )}
-      {row.type === 'mismatch' && (
-        <p className="tooltip-note">
-          Substituted for{' '}
-          {side === 'left' ? row.right?.abilityName : row.left?.abilityName}.
-        </p>
-      )}
     </div>
   )
 }

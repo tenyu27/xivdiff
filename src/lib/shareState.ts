@@ -1,8 +1,9 @@
-import type { SideSelection } from './types.ts'
+import type { CompareView, SideSelection } from './types.ts'
 
 export interface CompareState {
   left: SideSelection
   right: SideSelection
+  view: CompareView
 }
 
 export function emptySide(url = ''): SideSelection {
@@ -26,6 +27,10 @@ export function encodeCompareState(state: CompareState): string {
     if (selection.actorId != null) params.set(`${key}p`, String(selection.actorId))
   }
 
+  // Only the non-default view is written, so an ordinary share link stays as
+  // short as it was before the sequence view existed.
+  if (state.view === 'timeline') params.set('view', 'timeline')
+
   return params.toString()
 }
 
@@ -43,7 +48,13 @@ export function decodeCompareState(search: string): CompareState {
     }
   }
 
-  return { left: read('left'), right: read('right') }
+  return {
+    left: read('left'),
+    right: read('right'),
+    // The time-placed timeline has known problems, so it is reachable only by
+    // asking for it in the URL; everything else gets the sequence view.
+    view: params.get('view') === 'timeline' ? 'timeline' : 'sequence',
+  }
 }
 
 function toId(value: string | null): number | null {

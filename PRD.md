@@ -263,15 +263,24 @@ The center provides a shared temporal reference and space for comparison informa
 
 # 8. Timeline Positioning
 
-Actual elapsed encounter time is the fundamental timeline coordinate.
+Elapsed **phase** time is the fundamental timeline coordinate.
 
 Conceptually:
 
-    position = action.timestamp - fight.startTime
+    position = action.timestamp - phase.startTime
 
-Fight start represents:
+The start of each phase represents:
 
     0:00
+
+A phase boundary is a hard resynchronisation point — the boss goes
+untargetable, both pulls stop and restart — so how long one side spent in the
+previous phase says nothing about the next. Anchoring to fight start instead
+would report a pull that reached phase 2 thirty seconds early as thirty seconds
+ahead on every remaining action, which is noise rather than a difference.
+
+An encounter FFLogs does not phase has exactly one phase, which starts at the
+pull; there, this reduces to elapsed encounter time.
 
 Both tracks use the same vertical time scale.
 

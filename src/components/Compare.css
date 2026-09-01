@@ -1,12 +1,34 @@
 /* The page itself never scrolls; the timeline body owns scrolling. */
+/* Named areas rather than positional rows: the notice and the action bar are
+   both conditional, and with positional rows their absence slid the body row
+   into an `auto` track, which left the action bar floating mid-viewport. */
 .compare {
   height: 100dvh;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: 'header' 'notice' 'body' 'actions';
   overflow: hidden;
 }
 
+.compare-header {
+  grid-area: header;
+}
+
+.selection-region,
+.timeline,
+.sequence,
+.compare-skeleton,
+.empty-timeline {
+  grid-area: body;
+  min-height: 0;
+}
+
+.selection-done {
+  grid-area: actions;
+}
+
 .cross-job {
+  grid-area: notice;
   padding: 8px 24px;
   font-size: 12px;
   color: var(--text-2);
@@ -17,7 +39,7 @@
 .selection-region {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: minmax(0, 1fr) auto;
+  align-content: start;
   overflow-y: auto;
   max-width: 1600px;
   width: 100%;
@@ -25,11 +47,74 @@
 }
 
 .selection-done {
-  grid-column: 1 / -1;
   display: flex;
   justify-content: center;
-  padding: 20px 24px 32px;
+  padding: 16px 24px;
   border-top: 1px solid var(--hairline);
+  background: var(--surface);
+}
+
+/* --- loading the comparison ------------------------------------------- */
+
+/* The same ground, separator and row rhythm the comparison itself has, so the
+   arrival of the data changes what is on screen and not where anything is. */
+.compare-skeleton {
+  overflow: hidden;
+  background: var(--sunken);
+  border-top: 1px solid var(--hairline);
+}
+
+.compare-skeleton-inner {
+  position: relative;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px 0;
+}
+
+.compare-skeleton-spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--hairline-strong);
+}
+
+.skel-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr;
+  align-items: center;
+}
+
+/* The heights the real rows will have. */
+.skel-row-gcd {
+  height: 46px;
+}
+
+.skel-row-ogcd {
+  height: 32px;
+}
+
+/* Two placeholders per row, each hard against the separator on its own side —
+   the position the icons themselves take. */
+.skel-row > .skel-icon:first-child {
+  justify-self: end;
+}
+
+.skel-row > .skel-icon:last-child {
+  grid-column: 3;
+  justify-self: start;
+}
+
+.skel-icon-gcd {
+  width: 38px;
+  height: 38px;
+}
+
+.skel-icon-ogcd {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
 }
 
 /* --- empty state ------------------------------------------------------ */
