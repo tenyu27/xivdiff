@@ -38,3 +38,4 @@ node_modules/.tmp
 
 # Cloudflare Worker
 worker/.wrangler/
+worker/.dev.vars
