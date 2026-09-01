@@ -1,0 +1,63 @@
+.side-panel {
+  display: grid;
+  align-content: start;
+  gap: 20px;
+  padding: 24px;
+  min-width: 0;
+}
+
+/* Only the divider between the two selection columns, no card wrapper. */
+.side-panel + .side-panel {
+  border-left: 1px solid var(--hairline);
+}
+
+.side-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.side-url-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.side-block {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.side-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.side-error {
+  padding: 12px 14px;
+  border-left: 2px solid var(--rose);
+  background: var(--surface);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.side-error-text {
+  color: var(--rose);
+  font-size: 13px;
+}
+
+.side-status {
+  margin-top: 0;
+}
+
+.skeleton-label {
+  height: 12px;
+  width: 140px;
+  margin-bottom: 10px;
+}
+
+.skeleton-row {
+  height: 38px;
+  border-radius: var(--radius-lg);
+}

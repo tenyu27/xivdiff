@@ -1,0 +1,191 @@
+/* The timeline body is the only scroll container in the app. */
+.timeline {
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--sunken);
+  border-top: 1px solid var(--hairline);
+}
+
+.timeline-inner {
+  position: relative;
+  display: grid;
+  /* The one place symmetry is mandatory: mirror-equal tracks either side of a
+     fixed time gutter. */
+  grid-template-columns: 1fr 120px 1fr;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.track,
+.gutter {
+  position: relative;
+}
+
+/* Connectors deliberately overflow the gutter to meet the icons. */
+.gutter {
+  overflow: visible;
+}
+
+.spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--hairline-strong);
+}
+
+.tick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-3);
+  transform: translateY(-50%);
+  background: var(--sunken);
+  padding: 2px 0;
+}
+
+/* --- ability icons ---------------------------------------------------- */
+
+.action {
+  position: absolute;
+  margin: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  /* Opacity and border only — a scale transform would displace neighbours and
+     change perceived timing. */
+  transition: opacity 120ms ease, border-color 120ms ease;
+  cursor: default;
+}
+
+.action img,
+.action-blank {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.action-blank {
+  background: var(--whisper);
+}
+
+.action-ogcd {
+  border-radius: 4px;
+  opacity: 0.9;
+}
+
+.action:hover {
+  border-color: var(--hairline-strong);
+  opacity: 1;
+}
+
+.action-active {
+  outline: 2px solid var(--amber);
+  outline-offset: 1px;
+}
+
+.action-left-only,
+.action-right-only {
+  border-color: var(--rose);
+}
+
+.action-mismatch {
+  border-color: var(--ochre);
+}
+
+/* --- connectors ------------------------------------------------------- */
+
+.connector {
+  position: absolute;
+  height: 0;
+  display: flex;
+  align-items: center;
+}
+
+.connector-line {
+  flex: 1;
+  height: 1px;
+  background: var(--whisper);
+}
+
+.connector-timing-difference .connector-line {
+  background: var(--teal);
+}
+
+.connector-mismatch .connector-line {
+  background: var(--ochre);
+}
+
+.connector-stub .connector-line {
+  background: var(--rose);
+}
+
+.connector-delta {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--teal);
+  background: var(--sunken);
+  padding: 0 5px;
+}
+
+.stub-caret {
+  width: 0;
+  height: 0;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+}
+
+.stub-left .stub-caret {
+  border-left: 4px solid var(--rose);
+}
+
+.stub-right .stub-caret {
+  border-right: 4px solid var(--rose);
+  order: -1;
+}
+
+.stub-label {
+  font-size: 11px;
+  color: var(--text-2);
+  padding: 0 6px;
+  background: var(--sunken);
+  white-space: nowrap;
+}
+
+.stub-right .stub-label {
+  order: -2;
+}
+
+/* --- initial cascade -------------------------------------------------- */
+
+.staggering .action,
+.staggering .connector {
+  opacity: 0;
+  animation: rise 200ms ease-out forwards;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staggering .action,
+  .staggering .connector {
+    opacity: 1;
+    animation: none;
+  }
+}

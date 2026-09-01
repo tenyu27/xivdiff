@@ -1,0 +1,108 @@
+.row-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+/* Cards are used only here, where each row is a discrete selectable object. */
+.row-card {
+  width: 100%;
+  display: grid;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-left: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+  text-align: left;
+  cursor: pointer;
+}
+
+.row-card:hover {
+  border-color: var(--hairline-strong);
+  border-left-color: var(--hairline-strong);
+}
+
+.row-card-selected,
+.row-card-selected:hover {
+  border-left-color: var(--amber);
+}
+
+/* --- pull rows -------------------------------------------------------- */
+
+.row-list[aria-label='Pull'] .row-card {
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
+}
+
+.pull-number {
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.pull-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pull-duration {
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.pull-status {
+  font-size: 12px;
+  color: var(--text-2);
+  padding-left: 8px;
+  border-left: 2px solid var(--text-3);
+  display: flex;
+  gap: 6px;
+  min-width: 76px;
+}
+
+.pull-status-kill {
+  color: var(--teal);
+  border-left-color: var(--teal);
+}
+
+.pull-percent {
+  color: var(--text-3);
+}
+
+/* --- player rows ------------------------------------------------------ */
+
+.player-groups {
+  display: grid;
+  gap: 14px;
+}
+
+.player-groups .row-card {
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+}
+
+.job-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: block;
+}
+
+.job-icon-blank {
+  background: var(--whisper);
+}
+
+.player-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.job-abbr {
+  font-size: 12px;
+  color: var(--text-2);
+  letter-spacing: 0.04em;
+}

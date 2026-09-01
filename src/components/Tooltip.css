@@ -1,0 +1,81 @@
+.tooltip {
+  position: fixed;
+  z-index: 20;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  pointer-events: none;
+  animation: tooltip-in 100ms ease-out;
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip {
+    animation: none;
+  }
+}
+
+.tooltip-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tooltip-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-2);
+  display: flex;
+  justify-content: space-between;
+}
+
+.tooltip-kind {
+  color: var(--text-3);
+}
+
+.tooltip-compare {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline);
+}
+
+.tooltip-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px 12px;
+  font-size: 11px;
+}
+
+.tooltip-grid dt {
+  color: var(--text-2);
+}
+
+.tooltip-grid dd {
+  margin: 0;
+  text-align: right;
+}
+
+.tooltip-delta {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--teal);
+  text-align: right;
+}
+
+.tooltip-note {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hairline);
+  font-size: 11px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
