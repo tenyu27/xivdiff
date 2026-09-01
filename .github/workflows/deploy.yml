@@ -38,7 +38,7 @@ jobs:
 
       - run: yarn build
         env:
-          # Set this repository variable to your deployed worker's URL.
+          # Set this repository variable to the deployed worker's URL.
           VITE_API_BASE: ${{ vars.VITE_API_BASE }}
 
       # The app uses hash routing, so no 404.html fallback is needed.

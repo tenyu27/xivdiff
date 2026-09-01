@@ -51,10 +51,10 @@ yarn build      # tsc -b, then vite build
 yarn lint       # oxlint
 ```
 
-`VITE_API_BASE` is the deployed worker's origin. Without it the app loads and
-reports the missing proxy inline rather than failing silently; you can also set
-it at runtime under **Settings**, which is useful for pointing a public build at
-your own worker.
+`VITE_API_BASE` is the deployed worker's origin, read at build time. Without it
+the app loads and reports the missing proxy inline rather than failing silently.
+Put it in a local `.env` for `yarn dev`; CI supplies it from a repository
+variable.
 
 ## Deploying the worker
 

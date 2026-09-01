@@ -95,14 +95,6 @@ export function Landing() {
 
           <dl className="landing-points">
             <div>
-              <dt>Sequence-aware matching</dt>
-              <dd>
-                Actions are aligned with a longest-common-subsequence pass, so a
-                single extra weave does not mark the rest of the fight as
-                different.
-              </dd>
-            </div>
-            <div>
               <dt>Differences, not opinions</dt>
               <dd>
                 Missing actions, extra actions, substitutions, and timing drift

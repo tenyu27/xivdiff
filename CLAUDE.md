@@ -25,8 +25,8 @@ Use **yarn** (yarn.lock is committed). Node 24.
 
 Static site on GitHub Pages plus a Cloudflare Worker. FFLogs credentials must
 never reach the browser, so `worker/` proxies FFLogs GraphQL and holds the
-secrets; the SPA calls it at `VITE_API_BASE`. XIVAPI v2 is called directly from
-the browser — public and CORS-open.
+secrets; the SPA calls it at `VITE_API_BASE`, baked in at build time. XIVAPI v2
+is called directly from the browser — public and CORS-open.
 
 Routing is **hash-based** (`#/compare?...`): GitHub Pages has no rewrite rules,
 so a real path route would 404 on refresh. The URL is the single source of

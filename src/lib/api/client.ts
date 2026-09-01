@@ -1,29 +1,5 @@
-const STORAGE_KEY = 'xivdiff.apiBase'
-
-/**
- * The FFLogs proxy worker. Baked in at build time via `VITE_API_BASE`, but
- * overridable at runtime so a self-hoster can point a public build at their
- * own worker without rebuilding.
- */
-export function getApiBase(): string {
-  try {
-    const override = localStorage.getItem(STORAGE_KEY)
-    if (override) return override.replace(/\/+$/, '')
-  } catch {
-    // Private-mode browsers throw on storage access; fall through to the build value.
-  }
-  return (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '')
-}
-
-export function setApiBase(value: string): void {
-  try {
-    const trimmed = value.trim()
-    if (trimmed) localStorage.setItem(STORAGE_KEY, trimmed)
-    else localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // Nothing to do — the in-memory session keeps working with the build value.
-  }
-}
+/** The FFLogs proxy worker, baked in at build time via `VITE_API_BASE`. */
+const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '')
 
 /** A message already phrased for the user; the UI renders it verbatim. */
 export class ApiError extends Error {}
@@ -33,16 +9,13 @@ export async function graphql<T>(
   variables: Record<string, unknown>,
   signal?: AbortSignal,
 ): Promise<T> {
-  const base = getApiBase()
-  if (!base) {
-    throw new ApiError(
-      'No FFLogs proxy is configured for this build. Set one in Settings.',
-    )
+  if (!API_BASE) {
+    throw new ApiError('No FFLogs proxy is configured for this build.')
   }
 
   let response: Response
   try {
-    response = await fetch(`${base}/api/fflogs`, {
+    response = await fetch(`${API_BASE}/api/fflogs`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ query, variables }),

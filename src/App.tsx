@@ -1,9 +1,8 @@
 import { useSyncExternalStore } from 'react'
 import { Compare } from './components/Compare.tsx'
 import { Landing } from './components/Landing.tsx'
-import { Settings } from './components/Settings.tsx'
 import { TooSmall } from './components/TooSmall.tsx'
-import { navigate, useRoute } from './hooks/useRoute.ts'
+import { useRoute } from './hooks/useRoute.ts'
 import { useTheme } from './hooks/useTheme.ts'
 import './App.css'
 
@@ -36,8 +35,6 @@ export default function App() {
     return <Compare theme={theme} onToggleTheme={toggleTheme} />
   }
 
-  if (route.path === '/settings') return <Settings />
-
   return (
     <>
       <nav className="top-bar">
@@ -50,13 +47,6 @@ export default function App() {
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
           >
             {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary top-bar-btn"
-            onClick={() => navigate('/settings')}
-          >
-            Settings
           </button>
         </span>
       </nav>
