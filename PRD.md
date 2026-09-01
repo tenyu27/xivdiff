@@ -2,7 +2,7 @@
 
 # FFXIV Log Compare
 
-**Working Name:** TBD  
+**Working Name:** xivdiff  
 **Platform:** Web  
 **Version:** V1  
 **Primary Data Source:** FFLogs API (combat events)  
