@@ -5,7 +5,8 @@
 **Working Name:** TBD  
 **Platform:** Web  
 **Version:** V1  
-**Primary Data Source:** FFLogs API  
+**Primary Data Source:** FFLogs API (combat events)  
+**Game Data Source:** XIVAPI v2 — `https://v2.xivapi.com/` (ability icons, job icons, action metadata)  
 **Product Type:** FFXIV rotation comparison / visual action diff tool
 
 ---
@@ -373,6 +374,25 @@ At minimum, ability metadata must provide:
 Do not depend on xivanalysis as a runtime dependency for this metadata.
 
 xivanalysis may be studied as a reference implementation when useful.
+
+## Data source: XIVAPI v2
+
+Use XIVAPI v2 (`https://v2.xivapi.com/`) as the source for game data:
+
+- Action names and icons — `/api/sheet/Action`, `/api/sheet/Action/{id}`.
+- Job icons and metadata — `/api/sheet/ClassJob`.
+- Icon assets — served under `/api/asset/...` (XIVAPI resolves the game icon
+  path for a given sheet row; request the resized/`format=png` variant).
+
+Notes:
+
+- No API key required for read access; still cache aggressively.
+- Ability icons are largely static per patch — snapshot the needed
+  action/job rows into a local metadata layer (build-time JSON or a small
+  cache) rather than hitting XIVAPI per timeline render.
+- FFLogs event `abilityGameID` maps to the XIVAPI `Action` row ID.
+- GCD vs oGCD classification is not reliably given by XIVAPI; derive it
+  from action recast/cooldown data plus a curated per-job override list.
 
 ---
 
@@ -922,11 +942,11 @@ return a reliable normalized action list.
 
 Implement:
 
-1. Ability ID lookup.
-2. Ability names.
-3. Ability icons.
-4. GCD/oGCD classification.
-5. Job association where useful.
+1. Ability ID lookup (FFLogs `abilityGameID` → XIVAPI `Action` row).
+2. Ability names (XIVAPI v2 `Action` sheet).
+3. Ability icons (XIVAPI v2 asset endpoint; snapshot to local metadata layer).
+4. GCD/oGCD classification (derive from recast data + per-job overrides).
+5. Job association where useful (XIVAPI v2 `ClassJob` sheet, incl. job icons).
 
 Goal:
 
