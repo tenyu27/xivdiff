@@ -1,0 +1,46 @@
+name: Deploy FFLogs proxy
+
+on:
+  push:
+    branches: [main]
+    # The site and the worker deploy independently, so a UI change does not
+    # redeploy the proxy and vice versa.
+    paths:
+      - 'worker/**'
+      - '.github/workflows/deploy-worker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+          cache-dependency-path: worker/yarn.lock
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn typecheck
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: worker
+          # FFLOGS_CLIENT_ID and FFLOGS_CLIENT_SECRET are set once by hand with
+          # `wrangler secret put` and persist across deploys, so CI never needs
+          # to see them.
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

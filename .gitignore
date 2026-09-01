@@ -32,3 +32,9 @@ node_modules/.tmp
 .env
 .env.*
 !.env.example
+
+# CodeGraph (local index, per-machine)
+.codegraph/
+
+# Cloudflare Worker
+worker/.wrangler/
