@@ -1,0 +1,33 @@
+.logo {
+  display: block;
+  flex: none;
+}
+
+/* The same two tokens a comparison row is drawn with — the mark is not allowed
+   its own palette. */
+.logo-match {
+  stroke: var(--edge-match);
+  fill: var(--edge-match);
+}
+
+.logo-diff {
+  stroke: var(--edge-diff);
+  fill: var(--edge-diff);
+}
+
+/* --- lockup ------------------------------------------------------------ */
+
+/* Mark and wordmark on one baseline. The name is set in the mono face because
+   every other fixed token in this product is. */
+.logo-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-word {
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}

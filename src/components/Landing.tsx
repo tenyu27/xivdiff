@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { parseFFLogsUrl } from '../lib/fflogsUrl.ts'
 import { encodeCompareState, emptySide } from '../lib/shareState.ts'
 import { navigate } from '../hooks/useRoute.ts'
+import { Logo } from './Logo.tsx'
 import './Landing.css'
 
 interface FieldProps {
@@ -86,6 +87,13 @@ export function Landing() {
       {/* One column: the statement, then the two things to fill in. Nothing
           else — the tool explains itself the moment a log is pasted. */}
       <div className="landing-column">
+        {/* The only place the product signs its own name: the header of a
+            comparison has two pulls to identify and no room to spare. */}
+        <div className="logo-lockup landing-logo">
+          <Logo size={30} />
+          <span className="mono logo-word">xivdiff</span>
+        </div>
+
         <h1 className="landing-title">
           Compare two FFXIV rotations, action by action.
         </h1>
