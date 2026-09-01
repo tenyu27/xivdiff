@@ -1,0 +1,14 @@
+# Deployed into the `xivdiff` Cloudflare account, so the account subdomain
+# already carries the project name: https://proxy.xivdiff.workers.dev
+name = "proxy"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+# FFLOGS_CLIENT_ID and FFLOGS_CLIENT_SECRET are secrets, never vars:
+#   wrangler secret put FFLOGS_CLIENT_ID
+#   wrangler secret put FFLOGS_CLIENT_SECRET
+
+[vars]
+# Comma-separated origin allowlist, so the proxy cannot be used as an open relay
+# against the account's FFLogs quota. Empty would allow any origin.
+ALLOWED_ORIGINS = "https://xivdiff.com,https://www.xivdiff.com"
