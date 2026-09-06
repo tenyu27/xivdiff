@@ -76,7 +76,9 @@ export function Landing() {
         code: rightRef.code,
         fightId: rightRef.fightId ?? null,
       },
-      view: 'sequence',
+      // Entering from the landing page means having read nothing yet, which is
+      // exactly what the summary is for.
+      view: 'summary',
     })
 
     navigate('/compare', search)
