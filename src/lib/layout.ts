@@ -211,6 +211,24 @@ export function formatDuration(seconds: number): string {
 }
 
 /**
+ * A rate, written the way FFLogs writes it — `6,332.7`, one decimal and a
+ * thousands separator — so a number read here can be found on the log's own
+ * page without arithmetic.
+ */
+export function formatRate(value: number): string {
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+}
+
+/** The same, with an explicit sign — a delta that rounds to nothing is `0`. */
+export function formatSignedRate(value: number): string {
+  if (Math.abs(value) < 0.05) return '0'
+  return value > 0 ? `+${formatRate(value)}` : `−${formatRate(-value)}`
+}
+
+/**
  * Deltas always carry an explicit sign and three decimals. Currently unused —
  * drift is signalled by the icon border alone, with no number rendered — kept
  * because `deltaMs` is still computed and the format is settled.

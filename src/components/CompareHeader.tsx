@@ -101,8 +101,8 @@ export function CompareHeader({
 
       <div className="header-center">
         {/* Named for what each view lets you read, not for how it is drawn:
-            one answers "did we press the same buttons in the same order", the
-            other "when did each press land". */}
+            "did we press each button as often", "did we press them in the same
+            order", "when did each press land". */}
         <label className="header-select">
           <span className="label header-select-label">View</span>
           <select
@@ -112,6 +112,7 @@ export function CompareHeader({
               onViewChange(event.target.value as CompareView)
             }
           >
+            <option value="summary">Summary</option>
             <option value="sequence">Cast order</option>
             <option value="timeline">Cast timing</option>
           </select>

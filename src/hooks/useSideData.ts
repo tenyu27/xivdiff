@@ -227,6 +227,7 @@ export function useSideData(selection: SideSelection): SideData {
         })
 
         normalized.sort((a, b) => a.timestamp - b.timestamp)
+
         setActions(dropUnresolved(normalized, abilities))
         setLoadingActions(false)
       } catch (error) {

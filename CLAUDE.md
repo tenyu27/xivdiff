@@ -65,13 +65,46 @@ truth for comparison state — do not mirror it into component state.
 - A verdict written as an icon outline and the same verdict written as a word are two different contrast problems: the outline is read against the game's own art, which is dark in both themes, the word against the page. So `--edge-match`/`--edge-diff`/`--edge-absent` are separate tokens from `--verdant`/`--ochre`/`--rose`, and in Paper Light they are the full-chroma versions — the darkened text colors collapse into one muddy band at 2px on dark art.
 - UI glyphs are **Tabler** (`@tabler/icons-react`), sized and weighted once in `.btn svg`. Don't hand-roll an SVG or mix in a second icon set. Job icons are FFXIV art from XIVAPI and are not part of this.
 - No modals, no toasts, no spinners — selections and errors are inline, loading states are skeletons matching final dimensions.
-- Two comparison views, chosen from the header's **View** select and carried in
-  the URL as `view=`. `sequence` — "Cast order", the default — is `Sequence.tsx`:
-  every aligned pair is one evenly spaced row joined by a hairline across a
-  centre column that is a bare separator, and time re-enters only as a break
-  where one side was idle. `timeline` — "Cast timing" — is `Timeline.tsx`, which
-  places rows on a phase-relative clock. Name a view for what it lets you read,
-  never for how it is drawn. Both read the same `compareRotations` rows, so
-  alignment work benefits both.
+- Three comparison views, chosen from the header's **View** select and carried
+  in the URL as `view=`. `summary` — the default, `Summary.tsx` — is casts and
+  damage per ability on both sides, ordered by damage with casts as the
+  tiebreak, with one diverging bar drawn to a scale shared by every row; it
+  answers "did we press each button as often, and did it land for the same" and
+  never runs an aligner, so it costs nothing but a tally
+  (`src/lib/summary.ts`). Its columns are mirrored around the bar — the leading
+  columns and the trailing Δ column are given identical widths — so the bar sits
+  on the same centre line as the spine in every other view. `sequence` — "Cast
+  order" — is `Sequence.tsx`: every aligned pair is one evenly spaced row joined
+  by a hairline across a centre column that is a bare separator, and time
+  re-enters only as a break where one side was idle. `timeline` — "Cast timing"
+  — is `Timeline.tsx`, which places rows on a phase-relative clock. Name a view
+  for what it lets you read, never for how it is drawn. The two detailed views
+  read the same `MatchedAction` rows, so alignment work benefits both. The phase
+  filter is derived from the actions, not from the aligned rows, so every view
+  offers the same list of phases.
+- Damage in the summary is rDPS — FFLogs' redistribution of each hit across the
+  raid buffs that inflated it — and rDPS exists in no event. It comes from a
+  second query per side, `table(dataType: DamageDone, viewBy: Ability)`, loaded
+  by `useDamageTable` and cached per `code:fight:actor:start:end`. Four rules
+  hold it up:
+  - The phase filter is a query parameter, not a filter applied afterwards: the
+    table is asked about the phase's window. A phase's damage over the whole
+    pull's clock is not a number anyone can use.
+  - Rates divide by `totalTime - damageDowntime`, the time the player could
+    have been hitting something. Wall clock puts every figure ~9% under
+    FFLogs' own page; this lands within ~0.1% of it.
+  - It is enrichment, never the product. A side is `ready` on its casts alone,
+    the fetch lives outside `useSideData` so changing the phase never refetches
+    a rotation, and a failed table leaves the summary's rDPS columns empty
+    rather than taking the rotation down.
+  - Casts come from the cast events wherever they have the ability, because
+    those are what the detailed views align; FFLogs' `uses` stands in only for
+    the rows no cast can match — a song or buff, keyed by status id, whose whole
+    contribution is the rDPS it hands the raid. The delta's verdict colour comes
+    from the cast difference alone, since rDPS moves with crits and with what
+    the rest of the raid was doing.
+  Table rows carry FFLogs' own icon names (`002000-002624.png`), which
+  `gameIconUrl` turns into an XIVAPI asset path — that resolves status icons an
+  Action-row lookup never could.
 - The timeline's centre column carries time and nothing else. A row's verdict is the 2px border on its icon (verdant match / ochre difference / rose one-sided); its words go outboard of that icon, on the outer side of its own track. Each row also draws one hairline connector across the gutter, taking the row's colour and running only as far as the spine when a side has nothing; it is measured from the centre (`HALF_GUTTER + inset`) because the track columns are fluid and the gutter is not.
 - Deliberately removed, pending a decision to bring them back: the difference count, prev/next difference navigation and its `J`/`K` bindings, the rendered timing delta, and the tooltip's timing-comparison block. `deltaMs` is still computed (it classifies `timing-difference`) but is never displayed. The header carries a phase filter instead, defaulting to all phases.

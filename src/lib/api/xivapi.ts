@@ -33,6 +33,18 @@ export function assetUrl(path: string): string {
   return `${BASE}/asset?path=${encodeURIComponent(path)}&format=png`
 }
 
+/**
+ * FFLogs names icons the way the game files do — `002000-002624.png`, folder
+ * then file — so its table rows can be drawn without a second XIVAPI lookup.
+ * Status icons (a bard song's rDPS row) resolve through this too, which an
+ * Action-row lookup could never do.
+ */
+export function gameIconUrl(fflogsIcon: string): string {
+  const [folder, file] = fflogsIcon.replace(/\.png$/, '').split('-')
+  if (!folder || !file) return ''
+  return assetUrl(`ui/icon/${folder}/${file}.tex`)
+}
+
 /** Framed colour job icons live at 062100 + ClassJob row id. */
 export function jobIconUrl(classJobId: number): string | null {
   if (classJobId <= 0) return null

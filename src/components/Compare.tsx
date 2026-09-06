@@ -4,6 +4,7 @@ import { compareByOrder, compareRotations, rowPhase } from '../lib/diff.ts'
 import { jobFromName } from '../lib/jobs.ts'
 import { decodeCompareState, encodeCompareState } from '../lib/shareState.ts'
 import { navigate, replaceSearch, useRoute } from '../hooks/useRoute.ts'
+import { useDamageTable } from '../hooks/useDamageTable.ts'
 import { useSideData } from '../hooks/useSideData.ts'
 import type { SideData } from '../hooks/useSideData.ts'
 import type {
@@ -14,6 +15,7 @@ import type {
 } from '../lib/types.ts'
 import { CompareHeader } from './CompareHeader.tsx'
 import { Sequence } from './Sequence.tsx'
+import { Summary } from './Summary.tsx'
 import { SidePanel } from './SidePanel.tsx'
 import { Timeline } from './Timeline.tsx'
 import './Compare.css'
@@ -81,10 +83,21 @@ export function Compare({ theme, onToggleTheme }: Props) {
   // would make one of the two views answer the other's question.
   const compare = state.view === 'timeline' ? compareRotations : compareByOrder
 
+  // The summary only counts presses, so it never pays for an alignment.
   const allRows =
-    left.actions && right.actions ? compare(left.actions, right.actions) : []
+    state.view !== 'summary' && left.actions && right.actions
+      ? compare(left.actions, right.actions)
+      : []
 
-  const phases = [...new Set(allRows.map(rowPhase))].sort((a, b) => a - b)
+  // Read off the actions rather than the aligned rows, so the phase filter is
+  // the same list in every view — including the one that does not align.
+  const phases = [
+    ...new Set(
+      [...(left.actions ?? []), ...(right.actions ?? [])].map(
+        (action) => action.phase,
+      ),
+    ),
+  ].sort((a, b) => a - b)
 
   const [phase, setPhase] = useState<number | null>(null)
   const [comparedActions, setComparedActions] = useState<
@@ -107,6 +120,17 @@ export function Compare({ theme, onToggleTheme }: Props) {
   const active = phase != null && phases.includes(phase) ? phase : null
   const rows =
     active == null ? allRows : allRows.filter((row) => rowPhase(row) === active)
+
+  const inPhase = (actions: TimelineAction[] | null): TimelineAction[] =>
+    active == null
+      ? (actions ?? [])
+      : (actions ?? []).filter((action) => action.phase === active)
+
+  // rDPS exists only in FFLogs' aggregate, and only for the window asked
+  // about, so the phase filter is a query parameter here rather than a filter
+  // applied afterwards. Both sides ask independently, as everything else does.
+  const leftDamage = useDamageTable(left, active)
+  const rightDamage = useDamageTable(right, active)
 
   const jobOf = (data: SideData): string | null =>
     data.actor ? jobFromName(data.actor.subType).abbreviation : null
@@ -176,6 +200,15 @@ export function Compare({ theme, onToggleTheme }: Props) {
             </div>
           )}
         </>
+      ) : state.view === 'summary' ? (
+        <Summary
+          left={inPhase(left.actions)}
+          right={inPhase(right.actions)}
+          leftDamage={leftDamage.table}
+          rightDamage={rightDamage.table}
+          loadingDamage={leftDamage.loading || rightDamage.loading}
+          onDetail={() => setView('sequence')}
+        />
       ) : rows.length > 0 ? (
         state.view === 'timeline' ? (
           <Timeline rows={rows} />

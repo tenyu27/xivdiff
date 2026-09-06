@@ -101,6 +101,40 @@ export interface TimelineAction {
   actionType: ActionType
 }
 
+/**
+ * What one ability did over a window, as FFLogs accounts for it.
+ *
+ * `rdps` is raid-contributed damage: the hit's own number after FFLogs has
+ * moved the share the raid's buffs are responsible for onto the players who
+ * pressed them. It is the figure a rotation is judged on, and it exists only in
+ * FFLogs' aggregate — no cast or damage event carries it.
+ *
+ * Rows appear here that no cast list has: a DoT that ticks in a phase it was
+ * not pressed in, and a song or a buff, which deals nothing itself and still
+ * carries rDPS given to the raid.
+ */
+export interface AbilityDamage {
+  abilityId: number
+  name: string
+  icon: string
+  /** Raw damage dealt. */
+  damage: number
+  /** Raid-contributed damage over the window, not yet divided by its length. */
+  rdps: number
+  /** Casts as FFLogs counts them, for abilities the cast list does not carry. */
+  uses: number
+}
+
+export interface DamageTable {
+  abilities: AbilityDamage[]
+  /**
+   * The denominator behind every rate: the window's length less the time the
+   * player had nothing to hit. Dividing by wall clock instead puts every number
+   * about 9% under the ones on FFLogs' own page.
+   */
+  activeSeconds: number
+}
+
 export type DiffType =
   | 'match'
   | 'timing-difference'
@@ -117,10 +151,12 @@ export interface MatchedAction {
 }
 
 /**
- * How the comparison is drawn. `sequence` compares press order and is the
- * default; `timeline` is the original time-placed view, kept but unlisted.
+ * How the comparison is drawn. `summary` counts casts per ability and is the
+ * default — the cheapest question to answer, and the one that decides whether
+ * a press-by-press read is even needed; `sequence` compares press order;
+ * `timeline` places presses on a phase-relative clock.
  */
-export type CompareView = 'sequence' | 'timeline'
+export type CompareView = 'summary' | 'sequence' | 'timeline'
 
 /** Per-side selection, the unit of shareable state. */
 export interface SideSelection {

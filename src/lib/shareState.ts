@@ -27,9 +27,9 @@ export function encodeCompareState(state: CompareState): string {
     if (selection.actorId != null) params.set(`${key}p`, String(selection.actorId))
   }
 
-  // Only the non-default view is written, so an ordinary share link stays as
-  // short as it was before the sequence view existed.
-  if (state.view === 'timeline') params.set('view', 'timeline')
+  // Only a non-default view is written, so a link to the summary — the view a
+  // share most often opens on — stays as short as it can be.
+  if (state.view !== 'summary') params.set('view', state.view)
 
   return params.toString()
 }
@@ -51,10 +51,13 @@ export function decodeCompareState(search: string): CompareState {
   return {
     left: read('left'),
     right: read('right'),
-    // The time-placed timeline has known problems, so it is reachable only by
-    // asking for it in the URL; everything else gets the sequence view.
-    view: params.get('view') === 'timeline' ? 'timeline' : 'sequence',
+    view: readView(params.get('view')),
   }
+}
+
+/** An unknown or absent view falls back to the summary. */
+function readView(value: string | null): CompareView {
+  return value === 'timeline' || value === 'sequence' ? value : 'summary'
 }
 
 function toId(value: string | null): number | null {

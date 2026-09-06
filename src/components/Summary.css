@@ -1,0 +1,276 @@
+/* The summary body is the app's scroll container in this view. */
+.summary {
+  overflow-y: auto;
+  background: var(--sunken);
+  border-top: 1px solid var(--hairline);
+}
+
+.summary-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 24px 80px;
+}
+
+.summary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.summary-caption {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.summary-empty {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--text-2);
+}
+
+/* --- table ------------------------------------------------------------- */
+
+/* Fixed layout, so the count and delta columns hold still from row to row: a
+   column of numbers that shifts sideways as names get longer cannot be read
+   down. The leading columns and the trailing ones are given identical widths,
+   which is what puts the bar on the page's centre line rather than wherever the
+   name column happens to end. */
+.summary-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+
+.summary-table thead th {
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  text-align: center;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.summary-table thead .col-name {
+  text-align: left;
+}
+
+.summary-table tbody td,
+.summary-table tbody th,
+.summary-table tfoot td,
+.summary-table tfoot th {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--hairline);
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.summary-table tbody tr:last-child td,
+.summary-table tbody tr:last-child th {
+  border-bottom: none;
+}
+
+.summary-table tfoot tr {
+  background: var(--canvas);
+}
+
+.summary-table tfoot th,
+.summary-table tfoot td {
+  border-top: 1px solid var(--hairline-strong);
+  border-bottom: none;
+}
+
+.col-name {
+  width: 240px;
+  text-align: left;
+}
+
+.col-count {
+  width: 64px;
+  text-align: right;
+}
+
+.col-damage {
+  width: 88px;
+  text-align: right;
+}
+
+/* Mirrors .col-name exactly — the balance is the point, not the content. */
+.col-delta {
+  width: 240px;
+  text-align: left;
+  padding-left: 20px;
+}
+
+.col-bar {
+  width: auto;
+}
+
+.summary-table thead .col-group {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.summary-table thead .col-bar,
+.summary-table thead .col-delta {
+  text-align: center;
+}
+
+.summary-table thead .col-delta {
+  text-align: left;
+}
+
+.summary-row:hover {
+  background: var(--amber-wash);
+}
+
+/* --- name cell --------------------------------------------------------- */
+
+.summary-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.summary-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The size difference is the only marking a GCD gets here — a weave and a
+   weaponskill read as different weights without a badge to decode. */
+.summary-icon {
+  flex: none;
+  display: block;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.summary-icon-gcd {
+  width: 26px;
+  height: 26px;
+}
+
+.summary-icon-ogcd {
+  width: 20px;
+  height: 20px;
+}
+
+.summary-icon img,
+.summary-icon-blank {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.summary-icon-blank {
+  background: var(--whisper);
+}
+
+.summary-breakdown {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* The rate's own width, so the column does not resize when FFLogs answers. */
+.summary-rate-skeleton {
+  display: inline-block;
+  width: 56px;
+  height: 12px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+/* --- delta column ------------------------------------------------------ */
+
+/* Two numbers, casts above damage, because they answer different questions: one
+   is a decision the player made, the other is what the fight paid for it. */
+.summary-delta-casts,
+.summary-delta-damage {
+  display: block;
+  line-height: 1.35;
+}
+
+.summary-delta-casts {
+  font-size: 13px;
+}
+
+.summary-delta-damage {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* --- bars -------------------------------------------------------------- */
+
+/* Two lengths meeting at the middle, the same left/right geometry the
+   comparison views use, drawn to one shared scale so a row can be read against
+   every other row and not only against itself. */
+.summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+.summary-bar-half {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.summary-bar-left {
+  justify-content: flex-end;
+}
+
+.summary-bar-right {
+  justify-content: flex-start;
+}
+
+.summary-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--amber);
+  opacity: 0.75;
+}
+
+.summary-row.is-absent .summary-bar-fill {
+  background: var(--edge-absent);
+}
+
+.summary-row.is-diff .summary-bar-fill {
+  background: var(--edge-diff);
+}
+
+/* --- verdicts ---------------------------------------------------------- */
+
+/* The delta is a word on the page, not an outline over the game's art, so it
+   takes the text colours rather than the edge ones. */
+.col-delta.is-match {
+  color: var(--text-3);
+}
+
+.col-delta.is-diff {
+  color: var(--ochre);
+}
+
+.col-delta.is-absent {
+  color: var(--rose);
+}
