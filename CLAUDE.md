@@ -19,9 +19,28 @@ Cloudflare's builder matches local.
 
 Deployment is **Cloudflare Workers Builds**, watching this repo on GitHub —
 GitHub hosts the code and nothing else. There is no GitHub Actions workflow and
-no GitHub Pages site; do not add one back to "fix" a deploy. A push to `main`
-builds and deploys the site and proxy together, so there is no longer any way
-to ship one without the other.
+no GitHub Pages site; do not add one back to "fix" a deploy.
+
+The production branch is **`release`**, not `main`, so that pushing work and
+shipping it are separate acts. Push to `main` as often as you like; nothing
+deploys. Shipping is one command:
+
+```
+git push origin main:release        # deploy
+git push origin <sha>:release -f    # roll back
+```
+
+Workers Builds deploys whatever lands on `release`, so a force-push there is a
+deploy and not merely a git operation. Never use `release` for anything else.
+
+The build runs `yarn lint && yarn build`, so a lint or type error fails the
+build and nothing deploys — the live Worker keeps serving the previous version.
+That runs at ship time, not on every push to `main`; preview builds would give
+`main` a per-push check, but a preview hostname is not in `ALLOWED_ORIGINS`, so
+its API calls 403 and it is a build check rather than a usable environment.
+
+The site and the proxy deploy together and there is no longer any way to ship
+one without the other.
 
 ## Stack
 
