@@ -11,26 +11,53 @@ rule wins.
 - `yarn build` — typecheck (`tsc -b`) then production build (`vite build`)
 - `yarn lint` — run oxlint
 - `yarn preview` — serve the production build locally
+- `yarn worker:dev` — run the Worker (proxy) locally on :8787; `yarn dev` forwards `/api` to it
+- `yarn deploy` — build, then `wrangler deploy` the site and proxy as one Worker
 
-Use **yarn** (yarn.lock is committed). Node 24.
+Use **yarn** (yarn.lock is committed). Node 24, pinned in `.node-version` so
+Cloudflare's builder matches local.
+
+Deployment is **Cloudflare Workers Builds**, watching this repo on GitHub —
+GitHub hosts the code and nothing else. There is no GitHub Actions workflow and
+no GitHub Pages site; do not add one back to "fix" a deploy. A push to `main`
+builds and deploys the site and proxy together, so there is no longer any way
+to ship one without the other.
 
 ## Stack
 
 - **React 19** with the **React Compiler** enabled — do not hand-write `useMemo`/`useCallback`/`memo` for perf; the compiler handles memoization. Add them only when semantically required.
 - **TypeScript** — strict bundler mode, `verbatimModuleSyntax` on, so use `import type` for type-only imports. `.tsx`/`.ts` extensions allowed in import paths.
-- **Vite 8** (Rolldown). Config in `vite.config.ts`; Babel plugin wires the React Compiler preset. `base` is `'./'` so the build works at any GitHub Pages path.
+- **Vite 8** (Rolldown). Config in `vite.config.ts`; Babel plugin wires the React Compiler preset. `base` is `'./'` so the build is position-independent.
 - **oxlint** for linting (config `.oxlintrc.json`), not ESLint.
 
 ## Architecture
 
-Static site on GitHub Pages plus a Cloudflare Worker. FFLogs credentials must
-never reach the browser, so `worker/` proxies FFLogs GraphQL and holds the
-secrets; the SPA calls it at `VITE_API_BASE`, baked in at build time. XIVAPI v2
-is called directly from the browser — public and CORS-open.
+One Cloudflare Worker serves everything. The built SPA is served from `dist` as
+static assets; assets are matched first, so `/api/fflogs` — the only path with
+no file behind it — is the only request that reaches the Worker script.
+FFLogs credentials must never reach the browser, so `worker/` holds the secrets
+and proxies FFLogs GraphQL. XIVAPI v2 is called directly from the browser —
+public and CORS-open.
 
-Routing is **hash-based** (`#/compare?...`): GitHub Pages has no rewrite rules,
-so a real path route would 404 on refresh. The URL is the single source of
-truth for comparison state — do not mirror it into component state.
+The SPA and the proxy therefore share an origin. The client calls `/api/fflogs`
+as a **relative path**; there is no build-time API base and nothing to
+configure per deployment. `vite dev` serves the SPA itself, so it forwards
+`/api` to `wrangler dev` to keep that single origin true in development too.
+Same origin does not make `ALLOWED_ORIGINS` redundant: CORS is browser-advisory
+and `curl` ignores it, so the Worker refuses a disallowed origin outright, and
+that refusal is the only thing standing between the FFLogs quota and an open
+relay. Never relax it to "same origin, so it does not matter".
+
+Serving from a Worker is also what makes the proxy's `caches.default` layer
+real: Cache API operations are functional on custom domains and a no-op on
+`*.workers.dev`, so a workers.dev deployment silently sends every query to
+FFLogs. Treat a workers.dev URL as a test target only.
+
+Routing is **hash-based** (`#/compare?...`), and `not_found_handling` is
+`"none"` for that reason: every real route is served from `/`, and
+`single-page-application` handling would answer unmatched paths with
+`index.html` and shadow the API route. The URL is the single source of truth
+for comparison state — do not mirror it into component state.
 
 ## Layout
 
@@ -47,7 +74,10 @@ truth for comparison state — do not mirror it into component state.
   - `jobs.ts`, `fflogsUrl.ts`, `shareState.ts`, `types.ts`
 - `src/hooks/` — `useRoute` (hash router store), `useSideData` (per-side loading state machine), `useTheme`
 - `src/components/` — one `.css` file per component, imported alongside it
-- `worker/` — the FFLogs proxy; its own package.json, deployed separately
+- `worker/` — the FFLogs proxy's source; typechecked by `tsconfig.worker.json`
+  and deployed with the site from the root `wrangler.toml`. Workers are named
+  `xivdiff-*` so the account's list says who each one is for; renaming one makes
+  Cloudflare create a new Worker without carrying the secrets over.
 
 ## Conventions
 

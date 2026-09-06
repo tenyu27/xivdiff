@@ -1,12 +1,14 @@
 /**
  * xivdiff FFLogs proxy.
  *
- * GitHub Pages serves static files only, and FFLogs credentials must never
- * reach the browser, so this worker holds the client credentials, exchanges
- * them for an access token, and forwards GraphQL queries.
+ * FFLogs credentials must never reach the browser, so this Worker holds the
+ * client credentials, exchanges them for an access token, and forwards GraphQL
+ * queries. It ships in the same Worker as the SPA: static assets are matched
+ * first, and `/api/fflogs` is the one path with no file behind it, so it is
+ * the only request that arrives here.
  *
- * Deploy separately from the site:
- *   cd worker && yarn install && yarn deploy
+ * Deploy with the site, from the repository root:
+ *   yarn deploy
  *   wrangler secret put FFLOGS_CLIENT_ID
  *   wrangler secret put FFLOGS_CLIENT_SECRET
  */
@@ -75,87 +77,61 @@ async function fetchToken(env: Env): Promise<string> {
   return token.value
 }
 
-interface OriginCheck {
-  allowed: boolean
-  headers: Record<string, string>
-}
-
 /**
- * CORS headers alone are not access control — they are advisory, and only a
- * browser honours them. `curl` and any script ignore them outright, so the
- * allowlist has to be enforced by refusing the request as well, or the proxy
- * stays an open relay against the account's FFLogs quota.
+ * The SPA is same-origin with this proxy, so no CORS headers are owed to it and
+ * none are sent. The allowlist is not CORS and never was: CORS is advisory and
+ * only a browser honours it, so the check has to refuse the request outright or
+ * the proxy is an open relay against the account's FFLogs quota. A same-origin
+ * POST still carries an `Origin` header, so the allowlist keeps working.
  */
-function checkOrigin(request: Request, env: Env): OriginCheck {
+function isAllowedOrigin(request: Request, env: Env): boolean {
   const origin = request.headers.get('origin')
   const allowlist = (env.ALLOWED_ORIGINS ?? '')
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean)
 
-  const unrestricted = allowlist.length === 0
-  const allowed = unrestricted || (origin != null && allowlist.includes(origin))
-
-  return {
-    allowed,
-    headers: {
-      // Never echo an origin that was rejected.
-      'access-control-allow-origin': allowed ? (origin ?? '*') : allowlist[0],
-      'access-control-allow-methods': 'POST, OPTIONS',
-      'access-control-allow-headers': 'content-type',
-      'access-control-max-age': '86400',
-      vary: 'Origin',
-    },
-  }
+  if (allowlist.length === 0) return true
+  return origin != null && allowlist.includes(origin)
 }
 
-function json(
-  body: unknown,
-  status: number,
-  headers: Record<string, string>,
-): Response {
+function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...headers, 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json' },
   })
 }
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-    const { allowed, headers: cors } = checkOrigin(request, env)
-
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: allowed ? 204 : 403, headers: cors })
-    }
-
     const url = new URL(request.url)
 
     // Left open so the deployment can be health-checked without an Origin.
     if (url.pathname === '/health') {
-      return json({ ok: true }, 200, cors)
+      return json({ ok: true }, 200)
     }
 
     if (url.pathname !== '/api/fflogs' || request.method !== 'POST') {
-      return json({ error: 'Not found.' }, 404, cors)
+      return json({ error: 'Not found.' }, 404)
     }
 
-    if (!allowed) {
-      return json({ error: 'Origin not allowed.' }, 403, cors)
+    if (!isAllowedOrigin(request, env)) {
+      return json({ error: 'Origin not allowed.' }, 403)
     }
 
     if (!env.FFLOGS_CLIENT_ID || !env.FFLOGS_CLIENT_SECRET) {
-      return json({ error: 'The proxy is missing FFLogs credentials.' }, 500, cors)
+      return json({ error: 'The proxy is missing FFLogs credentials.' }, 500)
     }
 
     let body: { query?: unknown; variables?: unknown }
     try {
       body = (await request.json()) as typeof body
     } catch {
-      return json({ error: 'Malformed request body.' }, 400, cors)
+      return json({ error: 'Malformed request body.' }, 400)
     }
 
     if (typeof body.query !== 'string') {
-      return json({ error: 'Missing GraphQL query.' }, 400, cors)
+      return json({ error: 'Missing GraphQL query.' }, 400)
     }
 
     const payload = JSON.stringify({
@@ -174,7 +150,6 @@ export default {
     const cached = await cache.match(cacheKey)
     if (cached) {
       const hit = new Response(cached.body, cached)
-      for (const [key, value] of Object.entries(cors)) hit.headers.set(key, value)
       hit.headers.set('x-cache', 'HIT')
       return hit
     }
@@ -190,21 +165,21 @@ export default {
         body: payload,
       })
     } catch {
-      return json({ error: 'Could not reach FFLogs.' }, 502, cors)
+      return json({ error: 'Could not reach FFLogs.' }, 502)
     }
 
     if (upstream.status === 401) {
       // The cached token was rejected; drop it so the next call re-authenticates.
       token = null
-      return json({ error: 'The proxy could not authenticate with FFLogs.' }, 502, cors)
+      return json({ error: 'The proxy could not authenticate with FFLogs.' }, 502)
     }
 
     if (upstream.status === 429) {
-      return json({ error: 'FFLogs rate limit reached.' }, 429, cors)
+      return json({ error: 'FFLogs rate limit reached.' }, 429)
     }
 
     if (!upstream.ok) {
-      return json({ error: `FFLogs returned ${upstream.status}.` }, 502, cors)
+      return json({ error: `FFLogs returned ${upstream.status}.` }, 502)
     }
 
     const text = await upstream.text()
@@ -212,7 +187,6 @@ export default {
     const response = new Response(text, {
       status: 200,
       headers: {
-        ...cors,
         'content-type': 'application/json',
         'cache-control': `public, max-age=${CACHE_SECONDS}`,
         'x-cache': 'MISS',

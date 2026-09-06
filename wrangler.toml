@@ -1,0 +1,44 @@
+# xivdiff ships as a single Worker: the built SPA is served from `dist` as
+# static assets, and anything with no matching file falls through to
+# `worker/src/index.ts`, which answers `/api/fflogs`.
+#
+# Workers are named `xivdiff-*` so the account's worker list says who each one
+# belongs to. Renaming does not rename the deployed Worker — Cloudflare creates
+# a new one and secrets do not follow, so a rename means re-running
+# `wrangler secret put` and deleting the old Worker by hand.
+#
+# Top-level keys must stay above the `[assets]` and `[vars]` headers: in TOML
+# every key after a table header belongs to that table, so `routes` written
+# below them silently becomes `vars.routes` and the deploy has nowhere to go.
+name = "xivdiff-web"
+main = "worker/src/index.ts"
+compatibility_date = "2025-09-01"
+
+# No workers.dev hostname. It is not just unused: it would be a second entry
+# point that bypasses any zone rate limiting rule, and `caches.default` is a
+# no-op there, so a workers.dev deployment silently sends every query to FFLogs.
+workers_dev = false
+
+# Deploying creates and owns these hostnames' DNS records, replacing whatever
+# they pointed at before.
+routes = [
+  { pattern = "xivdiff.com", custom_domain = true },
+  { pattern = "www.xivdiff.com", custom_domain = true },
+]
+
+# FFLOGS_CLIENT_ID and FFLOGS_CLIENT_SECRET are secrets, never vars:
+#   wrangler secret put FFLOGS_CLIENT_ID
+#   wrangler secret put FFLOGS_CLIENT_SECRET
+
+[assets]
+directory = "./dist"
+# Routing is hash-based, so every real route is served from `/` and no SPA
+# fallback is wanted. `single-page-application` would answer unmatched paths
+# with index.html and shadow the API route before the Worker ever ran.
+not_found_handling = "none"
+
+[vars]
+# Origin allowlist. The site and the proxy share an origin now, so this is no
+# longer about CORS — it is the only thing keeping the proxy from being an open
+# relay against the account's FFLogs quota. Empty would allow any origin.
+ALLOWED_ORIGINS = "https://xivdiff.com,https://www.xivdiff.com"

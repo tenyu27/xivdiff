@@ -37,5 +37,5 @@ node_modules/.tmp
 .codegraph/
 
 # Cloudflare Worker
-worker/.wrangler/
-worker/.dev.vars
+.wrangler/
+.dev.vars

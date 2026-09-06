@@ -1,5 +1,9 @@
-/** The FFLogs proxy worker, baked in at build time via `VITE_API_BASE`. */
-const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '')
+/**
+ * The FFLogs proxy is served by the same Worker as this bundle, so the path is
+ * relative and there is no build-time base to configure. `vite dev` reaches it
+ * through the `/api` proxy in vite.config.ts.
+ */
+const FFLOGS_ENDPOINT = '/api/fflogs'
 
 /** A message already phrased for the user; the UI renders it verbatim. */
 export class ApiError extends Error {}
@@ -9,13 +13,9 @@ export async function graphql<T>(
   variables: Record<string, unknown>,
   signal?: AbortSignal,
 ): Promise<T> {
-  if (!API_BASE) {
-    throw new ApiError('No FFLogs proxy is configured for this build.')
-  }
-
   let response: Response
   try {
-    response = await fetch(`${API_BASE}/api/fflogs`, {
+    response = await fetch(FFLOGS_ENDPOINT, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ query, variables }),
