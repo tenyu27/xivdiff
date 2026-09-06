@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Yarn 4 (node-modules linker): the lockfile and .yarnrc.yml are committed,
+# the local install state and caches are not.
+.yarn/*
+!.yarn/patches
+.pnp.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

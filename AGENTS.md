@@ -14,8 +14,18 @@ rule wins.
 - `yarn worker:dev` — run the Worker (proxy) locally on :8787; `yarn dev` forwards `/api` to it
 - `yarn deploy` — build, then `wrangler deploy` the site and proxy as one Worker
 
-Use **yarn** (yarn.lock is committed). Node 24, pinned in `.node-version` so
-Cloudflare's builder matches local.
+Use **Yarn 4** (yarn.lock is committed), on the **latest stable release** —
+`yarn set version stable` and commit the bump rather than sitting on an old
+one. Latest does not mean unpinned: `packageManager` in package.json is
+currently `yarn@4.18.0`, and it is what makes Cloudflare's builder use the
+same Yarn that wrote the lockfile. The first Workers Build failed precisely because that
+pin was missing, so the builder took its own newest Yarn, migrated a Yarn 1
+lockfile and then refused the migration as an immutable install. Node 24 is
+pinned the same way, in `.node-version`.
+
+`.yarnrc.yml` sets `nodeLinker: node-modules` rather than Yarn 4's default PnP —
+Vite/Rolldown, the Babel React Compiler plugin, oxlint and wrangler all resolve
+from a real tree, and PnP buys nothing worth debugging four toolchains for.
 
 Deployment is **Cloudflare Workers Builds**, watching this repo on GitHub —
 GitHub hosts the code and nothing else. There is no GitHub Actions workflow and
