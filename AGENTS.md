@@ -67,6 +67,15 @@ and `curl` ignores it, so the Worker refuses a disallowed origin outright, and
 that refusal is the only thing standing between the FFLogs quota and an open
 relay. Never relax it to "same origin, so it does not matter".
 
+Deliberately not added, pending a decision: a zone **rate limiting rule** in
+front of the Worker. The allowlist stops a browser on someone else's site, and
+`caches.default` makes a repeated query free, but neither stops a script that
+forges an `Origin` header — that caller is the gap, and a rate limit is what
+would close it. Serving from a custom domain is what makes one possible at all
+(rate limiting rules are zone-scoped and do not exist on `*.workers.dev`), so
+the option is open whenever the quota starts looking exposed. This is a choice,
+not an oversight.
+
 Serving from a Worker is also what makes the proxy's `caches.default` layer
 real: Cache API operations are functional on custom domains and a no-op on
 `*.workers.dev`, so a workers.dev deployment silently sends every query to
