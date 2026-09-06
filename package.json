@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "yarn@1.22.22",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -18,7 +19,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
-    "@cloudflare/workers-types": "^4.20250906.0",
+    "@cloudflare/workers-types": "^5.20260903.1",
     "@rolldown/plugin-babel": "^0.2.3",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^24.13.3",
